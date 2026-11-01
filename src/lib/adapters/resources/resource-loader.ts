@@ -28,7 +28,7 @@ export async function waitForResources(host: HTMLElement, signal?: AbortSignal, 
         ...[...(host.tagName === 'IMG' ? [host as HTMLImageElement] : []), ...Array.from(host.querySelectorAll('img'))].filter(img => {
           // Source readiness must not wait on explicitly excluded resources.
           for (let node: Element | null = img; node; node = node.parentElement) {
-            if (excludedElements.includes(node) || classifyPrintNode(node, rules).kind === 'ignore') return false;
+            if (excludedElements.includes(node) || classifyPrintNode(node, rules)?.kind === 'ignore') return false;
             if (node === host) break;
           }
           return true;

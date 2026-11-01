@@ -4,7 +4,7 @@ import { waitForResources } from '../adapters/resources/resource-loader';
 import { calculateGeometry, PageGeometry } from '../core/geometry/page-geometry';
 import { DEFAULT_SETTINGS, resolvePaper } from '../core/geometry/paper';
 import { paginate } from '../core/pagination/paginator';
-import { buildPrintRules, getPrintRules } from '../core/rules/print-rules';
+import { buildSplittableSelector, buildPrintRules, getSplittableSelector, getPrintRules } from '../core/rules/print-rules';
 import {
   DeclarativeHeaderFooterConfig,
   MeasurementStats,
@@ -50,6 +50,8 @@ export interface PaginationPipelineOptions {
   maxPages: number;
   rules?: readonly PrintRule[];
   ruleConfig?: PrintRuleConfig;
+  /** 独立于 rules 的 splittable 策略选择器；未提供时随 ruleConfig 推导，否则取全局配置。 */
+  splittableSelector?: string;
 }
 
 export interface LayoutOptions {
@@ -68,6 +70,8 @@ export interface LayoutOptions {
   maxPages?: number;
   rules?: readonly PrintRule[];
   ruleConfig?: PrintRuleConfig;
+  /** 独立于 rules 的 splittable 策略选择器；未提供时随 ruleConfig 推导，否则取全局配置。 */
+  splittableSelector?: string;
 }
 
 export interface PreparedLayout extends PageGeometry {
@@ -87,10 +91,11 @@ export interface PreparedLayout extends PageGeometry {
 const activeRoots = new WeakSet<HTMLElement>();
 
 /** DOM measurement adapter → measured intervals → pure core paginator. */
-export function planDocument({ root, capacity, maxPages, rules, ruleConfig }: PaginationPipelineOptions) {
+export function planDocument({ root, capacity, maxPages, rules, ruleConfig, splittableSelector }: PaginationPipelineOptions) {
   const started = performance.now();
   const resolvedRules = rules || (ruleConfig ? buildPrintRules(ruleConfig) : getPrintRules());
-  const measurement = measureDocument(root, capacity, resolvedRules);
+  const resolvedSplittable = splittableSelector || (ruleConfig ? buildSplittableSelector(ruleConfig) : getSplittableSelector());
+  const measurement = measureDocument(root, capacity, resolvedRules, resolvedSplittable);
   const measured = performance.now();
   const pages = paginate(measurement.height, capacity, measurement.ranges, maxPages);
   return {
@@ -166,6 +171,8 @@ export async function prepareLayout(options: LayoutOptions): Promise<PreparedLay
   checkCancelled(signal);
   activeRoots.add(printElement);
   const rules = options.rules || (options.ruleConfig ? buildPrintRules(options.ruleConfig) : getPrintRules());
+  const splittableSelector = options.splittableSelector
+    || (options.ruleConfig ? buildSplittableSelector(options.ruleConfig) : getSplittableSelector());
   let snapshot: ReturnType<typeof createPrintSnapshot> | undefined;
   const cleanup = () => {
     snapshot?.dispose();
@@ -213,6 +220,7 @@ export async function prepareLayout(options: LayoutOptions): Promise<PreparedLay
       capacity: geometry.capacity,
       maxPages,
       rules,
+      splittableSelector,
     });
     return {
       ...geometry,

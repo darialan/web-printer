@@ -53,7 +53,7 @@ test('visualizePageBreaks 能够全覆盖标记 atomic, splittable 与 ignore �
   container.remove();
 });
 
-test('a custom splittable rule overrides native table atomic rules and cleanup is scoped', () => {  const first = document.createElement('div');
+test('a custom splittable selector overrides the native table-row default and cleanup is scoped', () => {  const first = document.createElement('div');
   const second = document.createElement('div');
   first.innerHTML = '<table><tbody><tr class="can-split"><td>text</td></tr></tbody></table>';
   second.innerHTML = '<h1>other document</h1>';
@@ -62,7 +62,8 @@ test('a custom splittable rule overrides native table atomic rules and cleanup i
     root.getBoundingClientRect = () => ({ left: 0, top: 0, width: 800, height: 100 } as DOMRect);
     root.querySelectorAll('*').forEach(node => { node.getBoundingClientRect = root.getBoundingClientRect; });
   }
-  const stats = visualizePageBreaks([0, 50], first, [{ selector: '.can-split', result: { kind: 'container' } }]);
+  // 空字符串选择器永不匹配，等价于完全关闭 tr 的默认 splittable 保护
+  const stats = visualizePageBreaks([0, 50], first, undefined, undefined, undefined, 'never-matches-anything');
   expect(stats.atomic).toBe(0);
   visualizePageBreaks([0], second);
   expect(first.querySelector('[data-print-debug]')).not.toBeNull();

@@ -1,5 +1,5 @@
 import { walkPrintTree } from '../adapters/dom/traversal';
-import { classifyPrintNode, getPrintRules } from '../core/rules/print-rules';
+import { classifyPrintNode, getSplittableSelector, getPrintRules } from '../core/rules/print-rules';
 import { PrintRule } from '../core/types';
 
 export interface ObservabilityStats {
@@ -25,7 +25,10 @@ export function visualizePageBreaks(
   pages: number[],
   element: HTMLElement,
   rules: readonly PrintRule[] = getPrintRules(),
-  excludedElements: readonly Element[] = []
+  excludedElements: readonly Element[] = [],
+  /** 用于让 splittable 行的可视化判断与 measureDocument 保持一致；未提供时按"整体保护"展示。 */
+  capacity?: number,
+  splittableSelector: string = getSplittableSelector()
 ): ObservabilityStats {
   clearPageBreaks(element);
 
@@ -52,9 +55,9 @@ export function visualizePageBreaks(
   const borderTop = computed ? (parseFloat(computed.borderTopWidth) || 0) : 0;
   const borderLeft = computed ? (parseFloat(computed.borderLeftWidth) || 0) : 0;
 
-  // 扫描当前打印区域内各节点，严格按照 3 种元素语义分类：
+  // 扫描当前打印区域内各节点，按与 measureDocument 一致的语义分类：
   // 1. ignore (不打印)
-  // 2. atomic (不可分割最小原子项)
+  // 2. atomic (不可分割最小原子项) —— 含 splittable 独立策略命中且能整体放入单页的情形
   // 3. splittable (可分割流式项)
   // 分类结果必须与 measureDocument 保持一致；否则会出现"标成可分割但实际没被切开"的错位。
   walkPrintTree(element, node => {
@@ -65,7 +68,7 @@ export function visualizePageBreaks(
     const rule = excludedElements.includes(el) ? { kind: 'ignore' as const } : classifyPrintNode(el, rules);
 
     // 1. ignore (不打印：交互控件 / 分页器 / 隐藏元素)
-    if (rule.kind === 'ignore') {
+    if (rule?.kind === 'ignore') {
       stats.ignore++;
       const rect = el.getBoundingClientRect();
       if (rect.width > 0 && rect.height > 0) {
@@ -90,8 +93,11 @@ export function visualizePageBreaks(
     const rect = el.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return 'skip';
 
-    // 2. atomic (不可分割原子项：表格行、标题、图片媒体、卡片、业务注册原子项)
-    if (rule.kind === 'atomic') {
+    // 2. atomic (严格不可分割：标题、图片媒体、卡片、业务注册原子项)
+    // splittable 是元素分类；命中整块优先保护选择器且能放入单页时，视觉上整体保护，
+    // 超高时继续下钻，与 atomic 分列但同框展示。
+    const fitsSplittable = el.matches(splittableSelector) && (capacity === undefined || rect.height <= capacity);
+    if (rule?.kind === 'atomic' || (rule?.kind === 'splittable' && fitsSplittable)) {
       stats.atomic++;
       element.appendChild(
         createOverlay({
@@ -114,9 +120,9 @@ export function visualizePageBreaks(
     if (isInlineBox(el, win)) return 'skip';
 
     // 3. splittable (可分割流式项：真正拥有正文文本的块，允许被物理分页线切断)
-    const explicitSplit = el.matches(SPLIT_CONTAINER_SELECTOR);
+    const splittable = rule?.kind === 'splittable';
     const ownsFlowingText = hasOwnText(el);
-    if (explicitSplit || ownsFlowingText) {
+    if (splittable && (el.matches(SPLIT_CONTAINER_SELECTOR) || ownsFlowingText)) {
       stats.splittable++;
       element.appendChild(
         createOverlay({
@@ -132,8 +138,8 @@ export function visualizePageBreaks(
           badgePosition: 'right',
         })
       );
-      // 显式声明的可分割容器继续下钻，让内部的原子子项照常标红
-      return explicitSplit ? 'descend' : 'skip';
+      // splittable 元素继续下钻，确保内部 atomic 子项也被标记
+      return 'descend';
     }
 
     // 本身没有正文的容器（例如只包了一张图的 <p>）继续下钻，

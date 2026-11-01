@@ -10,7 +10,7 @@ C4Component
 
   Container_Boundary(lib, "Web Printer 核心库") {
     Component(export, "导出编排", "TypeScript", "布局准备 · 会话 · 取消")
-    Component(classify, "内容分类", "TypeScript", "atomic / splittable / ignore")
+    Component(classify, "内容分类", "TypeScript", "atomic / ignore 判定 + splittable 策略")
     Component(snapshot, "快照", "DOM", "样式冻结 · 资源就绪")
     Component(measure, "布局测量", "DOM", "纸张几何 · 文字行 · 原子块")
     Component(paginate, "分页引擎", "TypeScript", "贪心避让 → 页面切片")
@@ -32,7 +32,7 @@ C4Component
 | 组件 | 职责 | 对应代码 |
 | --- | --- | --- |
 | 导出编排 | 对外 API；准备布局，管理会话、取消与资源释放 | `application/` |
-| 内容分类 | 判定 `atomic` / `splittable` / `ignore` | `core/rules/` |
+| 内容分类 | 元素显式分类为 `ignore` / `atomic` / `splittable`；文本由 DOM 层按行测量 | `core/rules/` |
 | 快照 | 克隆源 DOM、冻结计算样式、等待字体与图片 | `adapters/dom/snapshot.ts`、`adapters/resources/` |
 | 布局测量 | 纸张几何、正文容量、文字行与原子块区间 | `core/geometry/`、`adapters/dom/measurement.ts` |
 | 分页引擎 | 纯函数：受保护区间 + 容量 → 页面切片 | `core/pagination/` |

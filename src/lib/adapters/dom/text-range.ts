@@ -2,6 +2,8 @@ import { classifyPrintNode } from '../../core/rules/print-rules';
 import { Interval } from '../../core/types';
 import { walkPrintTree } from './traversal';
 
+const TEXT_NODE_TYPE = 3;
+
 export function createTextMeasurer(rootTop: number, collapse: (y: number) => number = y => y) {
   const lineHeights = new WeakMap<Element, number>();
   const range = document.createRange();
@@ -34,12 +36,11 @@ export function measureTextLines(root: HTMLElement): Interval[] {
   const measure = createTextMeasurer(root.getBoundingClientRect().top);
   const lines: Interval[] = [];
   walkPrintTree(root, node => {
-    const rule = classifyPrintNode(node);
-    if (rule.kind === 'ignore') return 'skip';
-    if (rule.kind === 'text') {
-      lines.push(...measure(node));
+    if (node.nodeType === TEXT_NODE_TYPE) {
+      if (node.textContent?.trim()) lines.push(...measure(node));
       return 'skip';
     }
+    if (classifyPrintNode(node)?.kind === 'ignore') return 'skip';
     return 'descend';
   });
   return lines;

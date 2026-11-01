@@ -53,7 +53,9 @@ export function useWebPrinter() {
     try {
       const result = await inspectPrintLayout({ ...params, signal: controller.signal });
       if (current()) {
-        if (showOverlay && params.contentElement) visualizePageBreaks(result.pageBreaks, params.contentElement);
+        if (showOverlay && params.contentElement) {
+          visualizePageBreaks(result.pageBreaks, params.contentElement, undefined, undefined, result.capacity);
+        }
         setState(prev => ({ ...prev, inspection: result }));
       }
       return result;

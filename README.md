@@ -47,20 +47,73 @@ await outputDocument({
 
 分页与渲染分离：DOM 先被降维成受保护区间，再由纯函数算出分页计划，最后逐页执行截图。
 
-<p align="center">
-  <img src="https://cdn.jsdelivr.net/gh/darialan/web-printer@master/assets/readme/architecture-layers.svg" width="100%" alt="Web Printer 四层架构：接入层、应用层、中间层、核心层">
-</p>
+### 系统分层
 
-| 层 | 模块 | 职责 |
-| --- | --- | --- |
-| 接入层 | React Hook · 分页调试 | 对外接入与可视化调试 |
-| 应用层 | 导出编排 · 会话 · 取消控制 | 编排流程、生命周期与资源释放 |
-| 中间层 | 快照 · 布局测量 · 页面渲染 · 输出组装 | 把 DOM 转成页面切片并组装输出 |
-| 核心层 | 内容分类 · 纸张几何 · 分页算法 | 纯计算，不依赖 DOM / React / 第三方 |
+```mermaid
+flowchart TD
+  subgraph Application["Application"]
+    AP["print-service / print-pipeline / print-session<br/>编排流程、取消与生命周期"]
+    HK["hooks（React）· overlay（调试可视化）"]
+  end
+  subgraph Core["Core（纯计算，不依赖 DOM / React / 第三方库）"]
+    CR["rules：ignore / atomic 判定 + splittable 策略<br/>pagination：paginate（排序·合并·安全断点）<br/>geometry：纸张尺寸与 capacity"]
+  end
+  subgraph Adapters["Adapters"]
+    AD["dom：快照 + 测量<br/>resources：字体 / 图片就绪<br/>canvas：html2canvas 截图"]
+  end
+  subgraph Output["Output"]
+    OU["PDF writer（jsPDF）· PNG writer + ZIP · 页码"]
+  end
 
-测量与渲染复用**同一份快照**，避免“预览能看、导出不一样”。
+  HK --> AP
+  AP --> CR
+  AP --> AD
+  AP --> OU
+  AD --> CR
+  OU --> CR
+```
 
-C4 视图（System Context / Container / Component）见[架构文档](https://github.com/darialan/web-printer/blob/master/docs/architecture/README.md)。
+四层依赖严格单向：`Application` 编排 `Adapters` 与 `Output`；两者都只依赖 `Core` 的纯函数，`Core` 不反向依赖任何一层，也不触碰 `document`/`window`。测量与渲染复用**同一份快照**，避免"预览能看、导出不一样"。
+
+### 核心分页算法
+
+DOM 降维成区间（measureDocument）与区间转为分页结果（paginate）是两个独立阶段，前者依赖 DOM，后者是纯函数：
+
+```mermaid
+flowchart TD
+  N["当前节点"] --> T{Text Node?}
+  T -->|是| X2["Range.getClientRects() 逐行测量"]
+  T -->|否，Element| R{命中 ignore?}
+  R -->|是| IG["跳过整个子树"]
+  R -->|否| AT{命中 atomic?}
+  AT -->|是| MEA["读取 getBoundingClientRect"]
+  MEA --> H{高度 ≤ capacity?}
+  H -->|是| P1["整块加入区间，停止下钻"]
+  H -->|否| ERR["抛错：不可拆分区域超高"]
+  AT -->|否| KT{命中 splittable?}
+  KT -->|是| MEA2["读取 getBoundingClientRect"]
+  MEA2 --> H2{高度 ≤ capacity?}
+  H2 -->|是| P1
+  H2 -->|否| DESC["递归分析子节点"]
+  KT -->|否| DESC
+
+  X2 --> RANGES[("Interval[] 受保护区间")]
+  P1 --> RANGES
+
+  RANGES --> SORT["按 top 排序"]
+  SORT --> MERGE["线性扫描合并重叠/相邻区间"]
+  MERGE --> ADV["从上一页末尾起，按 capacity 推进名义切点"]
+  ADV --> HIT{名义切点落入某区间内部?}
+  HIT -->|是| RETREAT["安全断点回退至该区间顶部"]
+  HIT -->|否| KEEP["名义切点本身即安全断点"]
+  RETREAT --> PAGE[("PageSlice")]
+  KEEP --> PAGE
+  PAGE -->|未到文档末尾| ADV
+```
+
+`ignore`、`atomic` 是仅有的两种显式节点分类；`splittable` 是独立分页策略（默认覆盖表格行 `tr`、`[role="row"]`），整体放得下时优先保护，超高时继续递归且不报错。受保护区间与文本行区间一起交给与 DOM 无关的 `paginate()` 完成排序、合并与安全断点计算。
+
+C4 视图（System Context / Container / Component）见[架构文档](https://github.com/darialan/web-printer/blob/master/docs/architecture/README.md)；完整算法说明见[底层原理](https://github.com/darialan/web-printer/blob/master/docs/internals.md)。
 
 ## API
 
@@ -82,18 +135,21 @@ C4 视图（System Context / Container / Component）见[架构文档](https://g
 
 ### 内容保护
 
-在 HTML 上直接标记，不绑定框架或组件库：
+默认即按文字行、子元素递归分析分页，不需要显式声明"可分割"。在 HTML 上标记例外，不绑定框架或组件库：
 
 ```html
-<article data-print-splittable="true">长文章正文</article>
+<article>长文章正文（默认递归分析，直接写即可）</article>
 <figure data-print-atomic="true">整块保护的配图与说明</figure>
 <div data-print-ignore="true">不参与导出的工具栏</div>
 ```
 
-- `data-print-atomic="true"` / `.print-atomic`：整块换页；单块超过一页时明确报错
-- `data-print-splittable="true"` / `.print-splittable`：允许按文字行或子元素分割
+- `data-print-atomic="true"` / `.print-atomic`：整块换页，严格不可分割；单块超过一页时明确报错，不提供降级路径
 - `data-print-ignore="true"` / `.print-ignore`：从导出中排除，不占用纸张空间
-- `data-print-keep-together="split"` / `.print-keep-or-split`：优先整块换页，过高时降级拆分；表格行默认采用此规则
+- `data-print-splittable="true"` / `.print-splittable`：元素分类为 `splittable`；默认递归测量子节点，命中整块优先保护选择器时，整体放得下则优先保护，过高时递归拆分，不报错；表格行（`tr`、`[role="row"]`）默认采用此偏好
+- `data-print-keep-together="split"` / `.print-keep-or-split`：旧标记，仍映射到 splittable 策略
+- `data-print-break="split"` / `.print-force-split`：旧标记，保留为无操作；默认节点本就递归分析
+
+> 元素分类明确为 `ignore`、`atomic` 或 `splittable`；文本节点不参与元素分类，由 Range 按视觉行测量。`ruleConfig.splittable` 注册额外的整块优先保护选择器。详见[迁移说明](https://github.com/darialan/web-printer/blob/master/docs/migration-to-web-printer.md)。
 
 也可以不修改模板，用 `ruleConfig` 或 `configurePrint()` 注册选择器。
 

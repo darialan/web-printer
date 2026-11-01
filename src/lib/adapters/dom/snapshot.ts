@@ -49,7 +49,7 @@ export function cloneWithResolvedStyles(source: HTMLElement, rules: readonly Pri
     if (!copy || copy.nodeType !== 1) return;
 
     // Exclude before resource decoding and layout, including configured selectors.
-    if (node !== source && (excludedElements.includes(node) || /^(SCRIPT|NOSCRIPT)$/.test(node.tagName) || classifyPrintNode(node, rules).kind === 'ignore')) {
+    if (node !== source && (excludedElements.includes(node) || /^(SCRIPT|NOSCRIPT)$/.test(node.tagName) || classifyPrintNode(node, rules)?.kind === 'ignore')) {
       copy.remove();
       return;
     }

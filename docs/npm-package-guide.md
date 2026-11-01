@@ -532,12 +532,17 @@ canvas.height = 0;
 
 ### 5.1 HTML 属性与通用类名协议
 
+元素分类明确为三种：ignore 排除整个子树，atomic 整体保护且超高时报错，splittable 递归分析子节点。文本节点不进入元素分类，由 Range 按视觉行测量；整块优先保护选择器只是 splittable 元素的附加分页偏好。
+
 | 规则类型 | HTML Attribute | CSS Class | 行为逻辑 |
 | --- | --- | --- | --- |
 | **原子不可分割** | `data-print-atomic="true"` | `.print-atomic` | 当前页放不下整块移到下一页，单块超过整页报明确错误 |
-| **流式可分割** | `data-print-splittable="true"` | `.print-splittable` | 允许切断，深入测量子元素或文本行 |
 | **打印忽略** | `data-print-ignore="true"` | `.print-ignore` | 完全排除在 PDF 之外 |
-| **复合块避让** | `data-print-keep-together="split"` | `.print-keep-or-split` | 优先整块推移；若单块超出整页高度，降级为可拆分容器 |
+| **可分割策略** | `data-print-splittable="true"` | `.print-splittable` | 整体放得下时优先保护；超高时递归拆分内部子元素，不报错；表格行（`tr` / `[role="row"]`）默认采用 |
+
+> 破坏性变更（v1.1.1 → 下一版本）：元素的默认分类现在明确为 `splittable`；文本节点仍由 Range 单独测量。`data-print-splittable="true"` / `.print-splittable` 以及旧 `data-print-keep-together="split"` / `.print-keep-or-split` 都将元素标记为 splittable，并参与整块优先保护；超高时递归拆分。旧 `data-print-break="split"` / `.print-force-split` 继续无操作。
+>
+> 需要严格整体保护的选择器应配置为 `atomic`（超高时报错）；需要整块放得下时优先保护、超高可递归拆分的选择器应配置为 `splittable`。
 
 ### 5.2 编程式规则配置 (`PrintRuleConfig`)
 
@@ -548,13 +553,13 @@ await outputPDF({
   element: document.getElementById('report'),
   filename: 'custom.pdf',
   ruleConfig: {
-    // 强制作为不可分割原子的选择器
+    // 强制作为不可分割原子的选择器：超过整页高度直接报错
     atomic: [
       '.my-business-card',
       '.signature-wrapper',
       '.chart-container',
     ],
-    // 强制作为可分割容器的选择器
+    // 整体放得下时保护，超高时递归拆分，不报错
     splittable: [
       '.article-body',
       '.long-text-flow',
@@ -569,10 +574,12 @@ await outputPDF({
 });
 ```
 
+> `ruleConfig.splittable` 将匹配元素纳入 splittable 分类，并注册整块优先保护偏好；未命中该选择器的元素仍明确分类为 splittable 并递归测量。旧配置字段 `keepTogether` 与 `keepOrSplit` 已移除：严格保护迁移到 `atomic`，放不下时继续拆分迁移到 `splittable`。
+
 ### 5.3 常见 UI 组件库（Ant Design、Element Plus 等）适配规则
 
 `@darialan/web-printer` 默认内置了与主流组件库无缝兼容的规则：
-- **表格行**：所有 `tr`、`.ant-table-row`、`.el-table__row` 自动作为原子项保护，表格行永远不会从中间被斩断。
+- **表格行**：所有 `tr`、`[role="row"]` 默认采用 splittable 策略——能整体放进一页就整体保护，放不下就递归拆分，不会报错也不会被从中间硬切断。`.ant-table-row`、`.el-table__row` 等组件库选择器需要业务方通过 `ruleConfig.atomic` 或 `ruleConfig.splittable` 显式注册（基础规则不内置任何组件库类名）。
 - **交互控件**：所有 `.ant-pagination`、分页器、隐藏标签自动忽略。
 - **标题与媒体**：`h1~h6`、`img`、`svg`、`canvas` 自动作为原子保护。
 
@@ -581,9 +588,9 @@ await outputPDF({
 ## 六、可视化调试与故障排查
 
 在集成和排错过程中，开发者常常需要肉眼观察：
-- “为什么这个卡片被推到了下一页？”
-- “切断线具体位于哪两个像素之间？”
-- “这个元素有没有被正确识别为 atomic 还是 splittable？”
+- "为什么这个卡片被推到了下一页？"
+- "切断线具体位于哪两个像素之间？"
+- "这个元素有没有被正确识别为 atomic 还是可以继续递归？"
 
 引擎提供了框架无关的可视化诊断工具：
 
@@ -595,8 +602,8 @@ const element = document.getElementById('my-report');
 // 1. 进行快速布局推演
 const diagnostics = await inspectPrintLayout({ contentElement: element });
 
-// 2. 在真实页面上直接渲染高亮标记图层
-visualizePageBreaks(diagnostics.pageBreaks, element);
+// 2. 在真实页面上直接渲染高亮标记图层（capacity 可选：传入后 splittable 行的展示与实际分页结果完全一致）
+visualizePageBreaks(diagnostics.pageBreaks, element, undefined, undefined, diagnostics.capacity);
 
 // 控制台打印出详细统计
 console.table({
@@ -612,8 +619,8 @@ console.table({
 ```
 
 ### 视觉图层标识含义：
-- 🟥 **红色实线框 + `atomic` 标签**：不可分割原子项。
-- 🟦 **蓝色虚线框 + `splittable` 标签**：流式可分割容器。
+- 🟥 **红色实线框 + `atomic` 标签**：不可分割原子项，含命中 splittable 且能整体放入单页的情形（如表格行）。
+- 🟦 **蓝色虚线框 + `splittable` 标签**：拥有正文文本、允许被分页线切断的流式容器。
 - ⬜ **灰色虚线框 + `ignore` 标签**：打印忽略项。
 - 🟪 **紫色虚线 + 剪刀标 `✂️ page-break: 1122px (p.1 ➔ p.2)`**：真实分页物理切割线位置。
 
@@ -633,11 +640,11 @@ console.table({
 - **解决方式**：
   - 库内置的 `waitForResources` 自动调用了 `document.fonts.ready`。只要项目按标准方式引入 `@font-face`，引擎会自动等待所有字体文件就绪后再启动布局测量与截图。
 
-### Q3: 为什么单页导出偶尔提示“存在超过单页高度且不可拆分的内容”？
-- **原因**：某个被标记为 `atomic`（或 `img`）的单体元素高度超过了当前纸张正文的最大容量（例如 A4 纵向容量约为 950px，但有一张高度为 1500px 的整屏大图）。任何避让算法都无法在不裁切它的前提下把它放在任何一页中。
+### Q3: 为什么单页导出偶尔提示"存在超过单页高度且不可拆分的内容"？
+- **原因**：某个被标记为 `atomic`（或 `img`）的单体元素高度超过了当前纸张正文的最大容量（例如 A4 纵向容量约为 950px，但有一张高度为 1500px 的整屏大图）。`atomic` 永远不提供降级路径，超高就是报错。
 - **解决方式**：
   1. 将过大的图片限制最大高度（例如在 CSS 中设置 `max-height: 800px; object-fit: contain;`）。
-  2. 若该容器本身是文字卡片，请为其增加 `data-print-splittable="true"` 或 `data-print-keep-together="split"`，允许引擎深入其内部进行按行分割。
+  2. 若该容器本身是文字卡片而非真正不可分割的媒体，请移除 `atomic` 标记（默认即递归分析），或改用 `ruleConfig.splittable` / `data-print-splittable="true"`，允许引擎在放不下整块时深入其内部按行分割。
 
 ---
 

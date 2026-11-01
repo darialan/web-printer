@@ -193,7 +193,7 @@ export function PrintWorkbench({ scenes, initialSceneKey }: { scenes: PrintScene
       const pages = paginate(measurement.height, capacity, measurement.ranges);
       const planned = performance.now();
       const pageBreaks = pages.map(page => page.start);
-      setStats(visualizePageBreaks(pageBreaks, el, rules));
+      setStats(visualizePageBreaks(pageBreaks, el, rules, undefined, capacity));
       setInspection({ pages, stats: measurement.stats, pageBreaks, totalHeight: measurement.height,
         capacity, protectedRanges: measurement.ranges,
         timing: { measurementMs: measured - started, paginationMs: planned - measured, totalMs: performance.now() - started } });

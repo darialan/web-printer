@@ -2,7 +2,7 @@ import { createPageCapture } from '../adapters/canvas/page-capture';
 import { measureDocument } from '../adapters/dom/measurement';
 import { createOutputWriter, OutputFormat, OutputWriter, validateOutputFormat } from '../output';
 import { validatePageBreaks } from '../core/pagination/paginator';
-import { buildPrintRules, getPrintRules } from '../core/rules/print-rules';
+import { buildSplittableSelector, buildPrintRules, getSplittableSelector, getPrintRules } from '../core/rules/print-rules';
 import { Interval, MeasurementStats, PageSlice } from '../core/types';
 import { checkCancelled } from './cancellation';
 import { LayoutOptions, PreparedLayout, prepareLayout, resolvePrintElement } from './print-pipeline';
@@ -108,10 +108,12 @@ export async function inspectPrintLayout({
   try {
     const pageBreaks = layout.pages.map(page => page.start);
     const rules = options.rules || (options.ruleConfig ? buildPrintRules(options.ruleConfig) : getPrintRules());
+    const splittableSelector = options.splittableSelector
+      || (options.ruleConfig ? buildSplittableSelector(options.ruleConfig) : getSplittableSelector());
     // Removing ignore nodes can reflow flex/grid and collapse margins. Comparing
     // those print coordinates with live source coordinates is invalid. Validate
     // against the actual snapshot used by both preview and export instead.
-    const snapshotMeasurement = measureDocument(layout.root, layout.capacity, rules);
+    const snapshotMeasurement = measureDocument(layout.root, layout.capacity, rules, splittableSelector);
     validatePageBreaks(layout.pages, snapshotMeasurement.ranges);
     const result: PrintInspectionResult = {
       pageBreaks,
