@@ -1,3 +1,4 @@
+import { registerDebugLayer } from '../adapters/dom/debug-layers';
 import { walkPrintTree } from '../adapters/dom/traversal';
 import { classifyPrintNode, getSplittableSelector, getPrintRules } from '../core/rules/print-rules';
 import { PrintRule } from '../core/types';
@@ -5,18 +6,16 @@ import { PrintRule } from '../core/types';
 export interface ObservabilityStats {
   atomic: number;
   splittable: number;
-  ignore: number;
+  excluded: number;
 }
 
-const restorers = new Map<HTMLElement, () => void>();
+const layers = new Map<HTMLElement, { host: HTMLElement; dispose: () => void }>();
 
 export function clearPageBreaks(owner?: Document | HTMLElement) {
-  const scope = owner || document;
-  scope.querySelectorAll('[data-print-debug]').forEach(node => node.remove());
-  for (const [root, restore] of Array.from(restorers)) {
+  for (const [root, layer] of Array.from(layers)) {
     if (!owner || owner === root || (owner.nodeType === 9 && root.ownerDocument === owner)) {
-      restore();
-      restorers.delete(root);
+      layer.dispose();
+      layers.delete(root);
     }
   }
 }
@@ -35,28 +34,46 @@ export function visualizePageBreaks(
   const stats: ObservabilityStats = {
     atomic: 0,
     splittable: 0,
-    ignore: 0,
+    excluded: 0,
   };
 
   const win = element.ownerDocument?.defaultView || (typeof window !== 'undefined' ? window : null);
-  const computed = win?.getComputedStyle ? win.getComputedStyle(element) : null;
 
-  if (computed && computed.position === 'static') {
-    const position = element.style.getPropertyValue('position');
-    const priority = element.style.getPropertyPriority('position');
-    element.style.position = 'relative';
-    restorers.set(element, () => {
-      if (position) element.style.setProperty('position', position, priority);
-      else element.style.removeProperty('position');
-    });
-  }
+  const doc = element.ownerDocument;
+  const host = doc.createElement('div');
+  host.setAttribute('data-print-debug', 'true');
+  host.setAttribute('aria-hidden', 'true');
+  host.style.cssText = 'position:absolute;pointer-events:none;z-index:2147483643;';
+  const update = () => {
+    const box = element.getBoundingClientRect();
+    host.style.left = `${box.left + (win?.scrollX || 0)}px`;
+    host.style.top = `${box.top + (win?.scrollY || 0)}px`;
+    host.style.width = `${box.width}px`;
+    host.style.height = `${box.height}px`;
+  };
+  update();
+  // A body print root also excludes the internal layer by ownership, not by a
+  // business-provided data attribute. Snapshot cloning consults this WeakSet.
+  registerDebugLayer(host);
+  const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(update);
+  observer?.observe(element);
+  win?.addEventListener('resize', update);
+  win?.addEventListener('scroll', update, true);
+  const dispose = () => {
+    observer?.disconnect();
+    win?.removeEventListener('resize', update);
+    win?.removeEventListener('scroll', update, true);
+    host.remove();
+  };
+  layers.set(element, { host, dispose });
+  doc.body.appendChild(host);
 
   const rootRect = element.getBoundingClientRect();
-  const borderTop = computed ? (parseFloat(computed.borderTopWidth) || 0) : 0;
-  const borderLeft = computed ? (parseFloat(computed.borderLeftWidth) || 0) : 0;
+  const borderTop = 0;
+  const borderLeft = 0;
 
   // 扫描当前打印区域内各节点，按与 measureDocument 一致的语义分类：
-  // 1. ignore (不打印)
+  // Explicit caller exclusions
   // 2. atomic (不可分割最小原子项) —— 含 splittable 独立策略命中且能整体放入单页的情形
   // 3. splittable (可分割流式项)
   // 分类结果必须与 measureDocument 保持一致；否则会出现"标成可分割但实际没被切开"的错位。
@@ -65,14 +82,15 @@ export function visualizePageBreaks(
     const el = node as HTMLElement;
     if (el.hasAttribute('data-print-debug')) return 'skip';
 
-    const rule = excludedElements.includes(el) ? { kind: 'ignore' as const } : classifyPrintNode(el, rules);
+    const excluded = excludedElements.includes(el);
+    const rule = classifyPrintNode(el, rules);
 
-    // 1. ignore (不打印：交互控件 / 分页器 / 隐藏元素)
-    if (rule?.kind === 'ignore') {
-      stats.ignore++;
+    // Explicit caller exclusions; no classification hides business content.
+    if (excluded) {
+      stats.excluded++;
       const rect = el.getBoundingClientRect();
       if (rect.width > 0 && rect.height > 0) {
-        element.appendChild(
+        host.appendChild(
           createOverlay({
             left: rect.left - rootRect.left - borderLeft,
             top: rect.top - rootRect.top - borderTop,
@@ -81,7 +99,7 @@ export function visualizePageBreaks(
             borderColor: '#94a3b8',
             borderStyle: 'dashed',
             backgroundColor: 'rgba(148, 163, 184, 0.08)',
-            badgeText: 'ignore',
+            badgeText: 'excluded',
             badgeBg: '#64748b',
             badgePosition: 'left',
           })
@@ -99,7 +117,7 @@ export function visualizePageBreaks(
     const fitsSplittable = el.matches(splittableSelector) && (capacity === undefined || rect.height <= capacity);
     if (rule?.kind === 'atomic' || (rule?.kind === 'splittable' && fitsSplittable)) {
       stats.atomic++;
-      element.appendChild(
+      host.appendChild(
         createOverlay({
           left: rect.left - rootRect.left - borderLeft,
           top: rect.top - rootRect.top - borderTop,
@@ -124,7 +142,7 @@ export function visualizePageBreaks(
     const ownsFlowingText = hasOwnText(el);
     if (splittable && (el.matches(SPLIT_CONTAINER_SELECTOR) || ownsFlowingText)) {
       stats.splittable++;
-      element.appendChild(
+      host.appendChild(
         createOverlay({
           left: rect.left - rootRect.left - borderLeft,
           top: rect.top - rootRect.top - borderTop,
@@ -184,7 +202,7 @@ export function visualizePageBreaks(
     `;
 
     lineContainer.appendChild(pill);
-    element.appendChild(lineContainer);
+    host.appendChild(lineContainer);
   });
 
   return stats;

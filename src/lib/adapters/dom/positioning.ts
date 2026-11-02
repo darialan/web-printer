@@ -33,10 +33,10 @@ export function freezePositioning(
     // Sticky already occupies a slot in normal flow. Keep that slot and its
     // containing block, but remove viewport/scroll-driven displacement.
     copy.style.setProperty('position', 'relative', 'important');
-    return;
+
   }
   const rect = source.getBoundingClientRect();
-  copy.style.setProperty('position', 'absolute', 'important');
+  if (css.position === 'fixed') copy.style.setProperty('position', 'absolute', 'important');
   // A fixed box may derive its auto width from both viewport edges. Preserve
   // the used CSS dimensions, including the original box-sizing and transform.
   if (css.width && css.width !== 'auto')

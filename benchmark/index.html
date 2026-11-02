@@ -1,0 +1,44 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Web Printer 验证实验台</title><link rel="stylesheet" href="./workbench.css"></head><body>
+<header><span class="mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8V3h12v5M6 17H3V9h18v8h-3M6 14h12v7H6z"/></svg>Web Printer</span><small>Benchmark · A4 / 10 mm / scale 2</small></header>
+<main><h1>分页导出实验台</h1><p id="status" role="status">选择样本，运行三个引擎的实际 PDF 导出。</p><div class="toolbar"><label for="sample">样本</label><select id="sample"></select><button id="run" class="primary">运行对照</button><a href="/.benchmark/results/report.html">查看自动化报告</a></div><div class="table-wrap"><table><thead><tr><th>引擎</th><th class="num">页数</th><th class="num">耗时 ms</th><th class="num">文件 KiB</th><th>结果</th></tr></thead><tbody id="results"><tr><td colspan="5">尚未运行。每个引擎使用独立的样本页面。</td></tr></tbody></table></div><h2>原页面样本</h2><iframe class="specimen" id="specimen" src="./fixture.html" title="当前测试样本"></iframe><h2>比较口径</h2><p>控制台只记录单次导出。运行 npm run benchmark 可获得三次重复、进程内存采样、逐页时序和原页面／快照／PDF 图像对比。先运行 npm run benchmark:prepare 准备 2.0.0 基线。</p></main>
+<script type="module">
+import {scenarios,settings} from './scenarios.mjs';
+const select=document.getElementById('sample'),status=document.getElementById('status'),results=document.getElementById('results'),frame=document.getElementById('specimen'),run=document.getElementById('run');
+for(const scenario of scenarios){const option=new Option(scenario.name,scenario.id);select.add(option);}
+const ready=()=>new Promise(resolve=>{const check=()=>frame.contentWindow?.fixtureReady?resolve():setTimeout(check,30);check();});
+const mount=async()=>{await ready();frame.contentWindow.bench.mountScenario(select.value);};
+select.addEventListener('change',mount);await mount();
+
+let urls=[];
+run.addEventListener('click',async()=>{
+  run.disabled=true;select.disabled=true;urls.forEach(URL.revokeObjectURL);urls=[];results.replaceChildren();
+
+  for(const name of ['baseline','current','html2pdf']){
+    const row=document.createElement('tr');results.append(row);status.textContent=`正在运行 ${name} / ${select.selectedOptions[0].text}`;
+    let temporary;
+    try{
+      temporary=document.createElement('iframe');temporary.style.cssText='position:absolute;left:-100000px;width:1440px;height:1000px';temporary.src='./fixture.html';document.body.append(temporary);
+      await new Promise((resolve,reject)=>{const start=Date.now();const check=()=>temporary.contentWindow?.fixtureReady?resolve():Date.now()-start>15000?reject(new Error('样本加载超时')):setTimeout(check,30);check();});
+      const win=temporary.contentWindow,b=win.bench,root=b.mountScenario(select.value);await b.current.waitForResources(root);const engine=await b.loadEngine(name);const start=performance.now();let blob,pages;
+
+      if(name==='html2pdf'){
+        const avoidList = select.value === 'credit-report'
+          ? ['img', 'canvas', 'svg', 'pre', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'tr', '.credit-card']
+          : ['img', 'canvas', 'svg', 'pre', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'tr'];
+        const worker=b.html2pdf().set({margin:10,image:{type:'png'},html2canvas:{scale:2,logging:false},jsPDF:{unit:'mm',format:'a4',orientation:'portrait',compress:true},pagebreak:{mode:['css','legacy'],avoid:avoidList}}).from(root);
+        blob=await worker.outputPdf('blob');pages=(await worker.get('pdf')).internal.getNumberOfPages();const canvas=await worker.get('canvas');canvas.width=0;canvas.height=0;
+      } else {
+        const output=await engine.outputDocument({element:root,settings,filename:select.value,format:'pdf',download:false});blob=output.blob;pages=output.pages;
+      }
+
+      const ms=performance.now()-start,url=URL.createObjectURL(blob);urls.push(url);
+      row.innerHTML=`<td>${name}</td><td class="num">${pages}</td><td class="num">${ms.toFixed(1)}</td><td class="num">${(blob.size/1024).toFixed(1)}</td><td><a href="${url}" download="${select.value}-${name}.pdf">下载 PDF</a></td>`;
+    }catch(error){
+      row.innerHTML=`<td>${name}</td><td colspan="4" class="error"></td>`;row.querySelector('.error').textContent=error.message;
+    }
+    finally{temporary?.remove();}
+  }
+  status.textContent='对照完成。耗时为本次运行数据，重复运行可能不同。';run.disabled=false;select.disabled=false;
+});
+window.addEventListener('beforeunload',()=>urls.forEach(URL.revokeObjectURL));
+</script></body></html>

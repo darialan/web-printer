@@ -21,6 +21,8 @@ npm start        # 启动本地工作台（demo + landing）
 | `npm run build:lib` | 构建 ESM / CJS / `.d.ts` 到 `dist/` |
 | `npm run check` | `typecheck` + `test:lib`，提交门禁 |
 | `npm run check:full` | 全量单测 + 库/站点构建 + e2e |
+| `npm run benchmark` | 对比 2.0.0 / 当前代码 / html2pdf.js，默认各运行 3 次 |
+| `npm run benchmark:serve` | 打开 `/benchmark/index.html` 使用实验台 |
 
 ## 提交前
 
@@ -31,6 +33,12 @@ npm run setup:hooks
 ```
 
 钩子会运行 `npm run check`。如果修改了 landing 或 demo，请额外跑对应测试或 `npm run check:full`。
+
+## 依赖与运行环境
+
+- 无服务端依赖：分页、截图与组装全部在浏览器内完成。
+- 可选 React 16.8+：仅 `/react` 入口使用。
+- 现代浏览器：需要 Canvas 2D、Range 与 Font Loading API。
 
 ## 源码结构
 
@@ -43,6 +51,10 @@ src/lib/
 ├── hooks/         # React 集成（仅 /react 入口）
 └── overlay/       # 分页线可视化调试
 ```
+
+仓库顶层：`src/demo/` 工作台示例、`src/landing/` 落地页、`e2e/` Playwright 端到端用例、`benchmark/` 同一批 HTML 的三引擎视觉与性能对照、`docs/` 对外文档、`assets/readme/` README 视觉资产。
+
+依赖方向严格单向：`demo / ui → application → adapters + core`，不要反向 import；`src/lib/core` 保持纯计算，不依赖 DOM、React 或第三方库。
 
 新增输出格式时实现 `OutputWriter` 并注册到 `output/index.ts`；分页、快照和截图链路不需要按格式分支。
 

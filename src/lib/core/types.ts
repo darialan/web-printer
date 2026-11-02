@@ -55,10 +55,9 @@ export interface PrintSettings {
 }
 
 /**
- * 元素节点分为 ignore、atomic、splittable；文本节点由 DOM 适配层单独测量。
+ * 元素节点分为 atomic、splittable；文本节点由 DOM 适配层单独测量。
  */
 export type ElementRule =
-  | { kind: 'ignore' }
   | { kind: 'atomic'; label: string }
   | { kind: 'splittable' };
 
@@ -72,13 +71,11 @@ export interface PrintRuleConfig {
   atomic?: string[];
   /** 注册 splittable 元素的整块优先保护偏好：整体放得下时保护，超高时递归拆分；表格行默认采用。 */
   splittable?: string[];
-  /** 不打印的选择器列表（排除在打印渲染之外的交互控件，如分页器、操作按钮） */
-  ignore?: string[];
 
   /** @deprecated 默认即递归分析，不再需要显式声明强制分割；保留字段不产生任何效果。 */
   forceSplit?: string[];
 
-  /** 自定义高级规则列表（前置优先匹配，只能表达 ignore / atomic） */
+  /** 自定义高级规则列表（前置优先匹配，表达 atomic / splittable） */
   customRules?: PrintRule[];
 }
 

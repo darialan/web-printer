@@ -1,0 +1,156 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520" role="img" aria-labelledby="pipe-title pipe-desc">
+  <title id="pipe-title">核心实现机制对比：html2pdf.js vs Web Printer 3.0</title>
+  <desc id="pipe-desc">详细对比 html2pdf.js 采用的整页超大 Canvas 纯像素硬切机制，与 Web Printer 采用的内容感知 Range 测量与逐页分块渲染机制。</desc>
+
+  <defs>
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f8faf8"/>
+    </linearGradient>
+    <filter id="shadow-sm" x="-4%" y="-6%" width="108%" height="116%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000000" flood-opacity="0.05"/>
+    </filter>
+  </defs>
+
+  <!-- Canvas Background -->
+  <rect width="1200" height="520" rx="16" fill="url(#bg-grad)"/>
+  <rect width="1200" height="520" rx="16" fill="none" stroke="#e0e6e1" stroke-width="1.5"/>
+
+  <!-- Title Section -->
+  <g transform="translate(60, 40)">
+    <text x="0" y="0" fill="#245e48" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" font-weight="700" letter-spacing="1.5">PIPELINE ARCHITECTURE</text>
+    <text x="0" y="28" fill="#18221b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif" font-size="24" font-weight="800">为什么传统方案会截断文字？为什么长文档会空白？</text>
+    <text x="0" y="52" fill="#66776b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif" font-size="14">html2pdf.js（整页大图 + 像素切刀）与 Web Printer（DOM Range 测量 + 逐页分块渲染）的底层机制对比</text>
+  </g>
+
+  <!-- PIPELINE 1: html2pdf.js (Traditional) -->
+  <g transform="translate(60, 130)">
+    <!-- Container Box -->
+    <rect x="0" y="0" width="1080" height="150" rx="12" fill="#fff9f9" stroke="#fad4d4" stroke-width="1.2"/>
+
+    <!-- Left Badge -->
+    <g transform="translate(24, 20)">
+      <rect x="0" y="0" width="130" height="24" rx="6" fill="#f5d6d6"/>
+      <text x="65" y="16" text-anchor="middle" fill="#aa2e2e" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" font-weight="800">html2pdf.js 机制</text>
+      <text x="0" y="44" fill="#882222" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="700">整页大图 · 像素硬切</text>
+      <text x="0" y="64" fill="#a85252" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">克隆 DOM + 插入 spacer div</text>
+      <text x="0" y="79" fill="#a85252" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">切刀与内容边界完全解耦</text>
+    </g>
+
+    <!-- Pipeline Step 1 -->
+    <g transform="translate(190, 22)">
+      <rect x="0" y="0" width="190" height="106" rx="8" fill="#ffffff" stroke="#f0c2c2" filter="url(#shadow-sm)"/>
+      <text x="14" y="24" fill="#2d332f" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="700">1. 克隆与改写 DOM</text>
+      <text x="14" y="45" fill="#66776b" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">强行 reflow 改变布局</text>
+      <text x="14" y="61" fill="#66776b" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">插入空白 &lt;div&gt; 撑高模拟分页</text>
+      <rect x="14" y="76" width="162" height="18" rx="3" fill="#fdf0f0"/>
+      <text x="20" y="89" fill="#c43838" font-family="ui-monospace, SFMono-Regular, monospace" font-size="10" font-weight="600">⚠ 复杂系统克隆耗时几秒</text>
+    </g>
+
+    <!-- Step Arrow -->
+    <path d="M394 75 L416 75 M410 70 L416 75 L410 80" fill="none" stroke="#e09999" stroke-width="2" stroke-linecap="round"/>
+
+    <!-- Pipeline Step 2 -->
+    <g transform="translate(430, 22)">
+      <rect x="0" y="0" width="220" height="106" rx="8" fill="#ffffff" stroke="#f0c2c2" filter="url(#shadow-sm)"/>
+      <text x="14" y="24" fill="#2d332f" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="700">2. 整页渲染超大 Canvas</text>
+      <text x="14" y="45" fill="#66776b" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">html2canvas 生成单张超长位图</text>
+      <text x="14" y="61" fill="#66776b" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">高度可达几万至几十万像素</text>
+      <rect x="14" y="76" width="192" height="18" rx="3" fill="#fdf0f0"/>
+      <text x="20" y="89" fill="#c43838" font-family="ui-monospace, SFMono-Regular, monospace" font-size="10" font-weight="600">✕ 超过浏览器上限整份全白 (#19)</text>
+    </g>
+
+    <!-- Step Arrow -->
+    <path d="M664 75 L686 75 M680 70 L686 75 L680 80" fill="none" stroke="#e09999" stroke-width="2" stroke-linecap="round"/>
+
+    <!-- Pipeline Step 3 -->
+    <g transform="translate(700, 22)">
+      <rect x="0" y="0" width="220" height="106" rx="8" fill="#ffffff" stroke="#f0c2c2" filter="url(#shadow-sm)"/>
+      <text x="14" y="24" fill="#2d332f" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="700">3. 纯像素高度硬切</text>
+      <text x="14" y="45" fill="#66776b" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">drawImage 盲目按固定高度切图</text>
+      <text x="14" y="61" fill="#66776b" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">不识别文字行或表格结构</text>
+      <rect x="14" y="76" width="192" height="18" rx="3" fill="#fdf0f0"/>
+      <text x="20" y="89" fill="#c43838" font-family="ui-monospace, SFMono-Regular, monospace" font-size="10" font-weight="600">✕ 文字截半 (#692) · 1px 累积漂移</text>
+    </g>
+
+    <!-- Step Arrow -->
+    <path d="M934 75 L956 75 M950 70 L956 75 L950 80" fill="none" stroke="#e09999" stroke-width="2" stroke-linecap="round"/>
+
+    <!-- Pipeline Step 4 Outcome -->
+    <g transform="translate(970, 22)">
+      <rect x="0" y="0" width="94" height="106" rx="8" fill="#fbeeee" stroke="#f5b8b8"/>
+      <text x="47" y="32" text-anchor="middle" fill="#c43838" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="800">输出 PDF</text>
+      <text x="47" y="55" text-anchor="middle" fill="#882222" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">文字截断</text>
+      <text x="47" y="72" text-anchor="middle" fill="#882222" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">表格断裂</text>
+      <text x="47" y="89" text-anchor="middle" fill="#882222" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">长文档失效</text>
+    </g>
+  </g>
+
+  <!-- PIPELINE 2: Web Printer 3.0 -->
+  <g transform="translate(60, 310)">
+    <!-- Container Box -->
+    <rect x="0" y="0" width="1080" height="170" rx="12" fill="#f4f9f6" stroke="#b6d8c4" stroke-width="1.5"/>
+
+    <!-- Left Badge -->
+    <g transform="translate(24, 26)">
+      <rect x="0" y="0" width="130" height="24" rx="6" fill="#245e48"/>
+      <text x="65" y="16" text-anchor="middle" fill="#ffffff" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" font-weight="800">Web Printer 3.0</text>
+      <text x="0" y="48" fill="#18362a" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="700">内容感知 · 逐页渲染</text>
+      <text x="0" y="68" fill="#32745d" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">先算安全断点，再按页绘制</text>
+      <text x="0" y="83" fill="#32745d" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">保持原貌，源 DOM 零污染</text>
+    </g>
+
+    <!-- Pipeline Step 1 -->
+    <g transform="translate(190, 22)">
+      <rect x="0" y="0" width="190" height="126" rx="8" fill="#ffffff" stroke="#b4dac3" filter="url(#shadow-sm)"/>
+      <text x="14" y="24" fill="#18221b" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="700">1. 离屏沙盒快照</text>
+      <text x="14" y="45" fill="#4d5c52" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">完全隔离宿主应用 DOM</text>
+      <text x="14" y="61" fill="#4d5c52" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">严格冻结原视图样式与尺寸</text>
+      <rect x="14" y="84" width="162" height="28" rx="4" fill="#eaf5ee"/>
+      <text x="20" y="97" fill="#1b5e3f" font-family="ui-monospace, SFMono-Regular, monospace" font-size="10" font-weight="700">&#10003; 零 DOM 污染 / 不破坏原页面</text>
+      <text x="20" y="107" fill="#32745d" font-family="ui-monospace, SFMono-Regular, monospace" font-size="9">隔离复杂 CSS，测量耗时大幅降低</text>
+    </g>
+
+    <!-- Step Arrow -->
+    <path d="M394 85 L416 85 M410 80 L416 85 L410 90" fill="none" stroke="#245e48" stroke-width="2" stroke-linecap="round"/>
+
+    <!-- Pipeline Step 2 -->
+    <g transform="translate(430, 22)">
+      <rect x="0" y="0" width="220" height="126" rx="8" fill="#ffffff" stroke="#b4dac3" filter="url(#shadow-sm)"/>
+      <text x="14" y="24" fill="#18221b" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="700">2. DOM Range 内容感知断点</text>
+      <text x="14" y="45" fill="#4d5c52" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">Range 精测文字行真实行高</text>
+      <text x="14" y="61" fill="#4d5c52" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">表格行优先整行保护与续页表头</text>
+      <rect x="14" y="84" width="192" height="28" rx="4" fill="#eaf5ee"/>
+      <text x="20" y="97" fill="#1b5e3f" font-family="ui-monospace, SFMono-Regular, monospace" font-size="10" font-weight="700">&#10003; 绝不切半行文字 / 告别怪异留白</text>
+      <text x="20" y="107" fill="#32745d" font-family="ui-monospace, SFMono-Regular, monospace" font-size="9">精准元素分类：atomic 与 splittable</text>
+    </g>
+
+    <!-- Step Arrow -->
+    <path d="M664 85 L686 85 M680 80 L686 85 L680 90" fill="none" stroke="#245e48" stroke-width="2" stroke-linecap="round"/>
+
+    <!-- Pipeline Step 3 -->
+    <g transform="translate(700, 22)">
+      <rect x="0" y="0" width="220" height="126" rx="8" fill="#ffffff" stroke="#b4dac3" filter="url(#shadow-sm)"/>
+      <text x="14" y="24" fill="#18221b" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="700">3. 逐页分块独立渲染</text>
+      <text x="14" y="45" fill="#4d5c52" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">按页生成 Canvas，用完即释放</text>
+      <text x="14" y="61" fill="#4d5c52" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">严格避免单张超大 Canvas 尺寸限制</text>
+      <rect x="14" y="84" width="192" height="28" rx="4" fill="#eaf5ee"/>
+      <text x="20" y="97" fill="#1b5e3f" font-family="ui-monospace, SFMono-Regular, monospace" font-size="10" font-weight="700">&#10003; 50 / 100 页超长文档稳定导出</text>
+      <text x="20" y="107" fill="#32745d" font-family="ui-monospace, SFMono-Regular, monospace" font-size="9">内存恒定受控 · 支持 Abort 取消</text>
+    </g>
+
+    <!-- Step Arrow -->
+    <path d="M934 85 L956 85 M950 80 L956 85 L950 90" fill="none" stroke="#245e48" stroke-width="2" stroke-linecap="round"/>
+
+    <!-- Pipeline Step 4 Outcome -->
+    <g transform="translate(970, 22)">
+      <rect x="0" y="0" width="94" height="126" rx="8" fill="#245e48"/>
+      <text x="47" y="32" text-anchor="middle" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="800">高保真输出</text>
+      <text x="47" y="58" text-anchor="middle" fill="#8de0b8" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" font-weight="700">PDF</text>
+      <text x="47" y="74" text-anchor="middle" fill="#8de0b8" font-family="ui-monospace, SFMono-Regular, monospace" font-size="11">或逐页 PNG</text>
+      <line x1="15" y1="86" x2="79" y2="86" stroke="#4a8f6f" stroke-width="1"/>
+      <text x="47" y="102" text-anchor="middle" fill="#d8f5e6" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10">文字整齐</text>
+      <text x="47" y="115" text-anchor="middle" fill="#d8f5e6" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10">表格完整</text>
+    </g>
+  </g>
+</svg>

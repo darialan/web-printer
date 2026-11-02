@@ -1,84 +1,231 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="wp-title wp-desc">
-  <title id="wp-title">Web Printer：浏览器内 HTML 分页导出</title>
-  <desc id="wp-desc">左侧是项目名称与说明；右侧展示一个长页面按内容切分为多页 A4，并输出 PDF 或逐页 PNG。</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-labelledby="wp-title wp-desc">
+  <title id="wp-title">Web Printer：专注长文档与业务报表的内容感知分页</title>
+  <desc id="wp-desc">左侧是产品核心定位与特性；右侧直观对比传统像素硬切导致的半行文字截断与表格割裂，以及 Web Printer 的内容感知安全断点与逐页保真输出。</desc>
 
-  <rect width="1200" height="360" fill="#f4f6f2"/>
+  <defs>
+    <linearGradient id="hero-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f6f8f5"/>
+      <stop offset="100%" stop-color="#edf2ec"/>
+    </linearGradient>
+    <filter id="card-shadow" x="-6%" y="-6%" width="112%" height="116%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#14211a" flood-opacity="0.08"/>
+    </filter>
+    <filter id="glow-badge" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#245e48" flood-opacity="0.15"/>
+    </filter>
+  </defs>
 
-  <!-- identity -->
-  <g transform="translate(56 36) scale(0.66)" fill="#202321">
-    <path d="M3 8 23 2.5v12l-3-.8V6.6L6 10.4v16.1l7.5-2v3.3L3 30.6Z" stroke="#202321" stroke-width="1.9" stroke-linejoin="round"/>
-    <path d="m25.5 11 11.5 3.4v16L16 36V24.6l3 .8v6.5L34 28V16.8l-8.5-2.5Z" stroke="#202321" stroke-width="1.9" stroke-linejoin="round"/>
-    <path fill="#32745d" d="M9.5 17.5c5.8-2.7 9.1-2.1 14-.5l7 2.2v6.4l-10.1-3.3c-4.1-1.3-6.5-.8-10.9 1Z"/>
-  </g>
-  <text x="96" y="56" fill="#6f7a72" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15" letter-spacing="1.3">CLIENT-SIDE HTML &#8594; PDF / PNG</text>
+  <!-- Background -->
+  <rect width="1200" height="420" rx="16" fill="url(#hero-bg)"/>
+  <rect width="1200" height="420" rx="16" fill="none" stroke="#dbe3dc" stroke-width="1.5"/>
 
-  <text x="56" y="146" fill="#202321" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif" font-size="64" font-weight="700" letter-spacing="-1.2">Web Printer</text>
-  <text x="56" y="197" fill="#3d453f" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif" font-size="24">把长网页按内容分页，保留原有样式，</text>
-  <text x="56" y="231" fill="#3d453f" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif" font-size="24">在浏览器里直接导出 PDF 或逐页 PNG。</text>
-
-  <rect x="56" y="264" width="42" height="2" fill="#32745d"/>
-  <text x="56" y="298" fill="#6f7a72" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15" letter-spacing="0.4">A4 / Letter / 自定义尺寸   &#183;   文字行 &#183; 表格行 &#183; 图文保护   &#183;   零服务端</text>
-
-  <!-- source page -->
-  <g>
-    <rect x="664" y="64" width="214" height="232" fill="#ffffff" stroke="#cbd3cb"/>
-    <path d="M862 64h16v16Z" fill="#e6ece6"/>
-    <path d="M862 64 878 80" stroke="#cbd3cb"/>
-    <rect x="680" y="84" width="120" height="8" fill="#202321" opacity="0.78"/>
-    <rect x="680" y="100" width="82" height="5" fill="#b9c1b9"/>
-    <rect x="680" y="118" width="182" height="4" fill="#ccd4cc"/>
-    <rect x="680" y="128" width="164" height="4" fill="#ccd4cc"/>
-    <rect x="680" y="138" width="176" height="4" fill="#ccd4cc"/>
-    <rect x="680" y="148" width="128" height="4" fill="#ccd4cc"/>
-
-    <rect x="680" y="160" width="182" height="50" fill="#fbeceb" stroke="#cf4a4a"/>
-    <rect x="680" y="160" width="3" height="50" fill="#cf4a4a"/>
-    <text x="796" y="176" fill="#cf4a4a" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" letter-spacing="0.8">ATOMIC</text>
-    <rect x="692" y="182" width="122" height="4" fill="#e0b4b4"/>
-    <rect x="692" y="192" width="92" height="4" fill="#e0b4b4"/>
-
-    <rect x="680" y="220" width="182" height="42" fill="#eaf1fb" stroke="#3f7fd6" stroke-dasharray="5 4"/>
-    <text x="800" y="235" fill="#3f7fd6" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" letter-spacing="0.8">SPLIT</text>
-    <rect x="692" y="244" width="146" height="4" fill="#b9cdec"/>
-    <rect x="692" y="252" width="112" height="4" fill="#b9cdec"/>
-    <rect x="680" y="274" width="150" height="4" fill="#ccd4cc"/>
-    <rect x="680" y="284" width="170" height="4" fill="#ccd4cc"/>
-  </g>
-  <text x="664" y="320" fill="#6f7a72" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15">源页面 &#183; 1 个长文档</text>
-
-  <!-- split -->
-  <path d="M892 178h64" stroke="#32745d" stroke-width="2"/>
-  <polygon points="964,178 954,172 954,184" fill="#32745d"/>
-  <text x="890" y="158" fill="#6f7a72" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif" font-size="15">按内容切分</text>
-
-  <!-- output pages -->
-  <g>
-    <rect x="1030" y="80" width="118" height="188" fill="#ffffff" stroke="#cbd3cb"/>
-    <rect x="1014" y="72" width="118" height="188" fill="#ffffff" stroke="#cbd3cb"/>
-    <rect x="998" y="64" width="118" height="188" fill="#ffffff" stroke="#cbd3cb"/>
-    <path d="M1104 64h12v12Z" fill="#e6ece6"/>
-    <path d="M1104 64 1116 76" stroke="#cbd3cb"/>
-
-    <rect x="1010" y="82" width="76" height="7" fill="#202321" opacity="0.78"/>
-    <rect x="1010" y="96" width="48" height="4" fill="#b9c1b9"/>
-    <rect x="1010" y="112" width="94" height="4" fill="#ccd4cc"/>
-    <rect x="1010" y="120" width="86" height="4" fill="#ccd4cc"/>
-    <rect x="1010" y="128" width="92" height="4" fill="#ccd4cc"/>
-    <rect x="1010" y="136" width="70" height="4" fill="#ccd4cc"/>
-
-    <rect x="1010" y="148" width="94" height="56" fill="#ffffff" stroke="#d8ded8"/>
-    <rect x="1010" y="148" width="94" height="12" fill="#eef1ed"/>
-    <rect x="1010" y="160" width="94" height="12" fill="#fbeceb"/>
-    <rect x="1010" y="160" width="2" height="12" fill="#cf4a4a"/>
-    <path d="M1010 172h94M1010 184h94" stroke="#d8ded8"/>
-
-    <text x="1072" y="238" fill="#6f7a72" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">1 / 3</text>
+  <!-- Left Content Area -->
+  <!-- Brand Header -->
+  <g transform="translate(60, 42)">
+    <g transform="scale(0.85)">
+      <rect x="0" y="0" width="36" height="36" rx="8" fill="#245e48"/>
+      <path d="M9 13.5 L18 9 L27 13.5 L18 18 Z" fill="#ffffff" opacity="0.95"/>
+      <path d="M9 17.5 L18 22 L27 17.5" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+      <path d="M9 22.5 L18 27 L27 22.5" fill="none" stroke="#8de0b8" stroke-width="2" stroke-linecap="round"/>
+    </g>
+    <text x="44" y="24" fill="#245e48" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" font-weight="700" letter-spacing="1.2">WEB PRINTER 3.0</text>
+    <rect x="180" y="9" width="168" height="22" rx="11" fill="#e2ede5"/>
+    <text x="189" y="24" fill="#245e48" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" font-weight="600">CONTENT-AWARE ENGINE</text>
   </g>
 
-  <rect x="998" y="30" width="46" height="22" fill="#244c3a"/>
-  <text x="1011" y="45" fill="#ffffff" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="14">PDF</text>
-  <rect x="1052" y="30" width="80" height="22" fill="none" stroke="#32745d"/>
-  <text x="1064" y="45" fill="#244c3a" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="14">PNG &#215;3</text>
+  <!-- Title & Headline -->
+  <text x="60" y="128" fill="#18221b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif" font-size="44" font-weight="800" letter-spacing="-1">专注长文档与业务报表</text>
+  <text x="60" y="174" fill="#245e48" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif" font-size="28" font-weight="700">保留打印视图布局，智能按内容分页</text>
+  <text x="60" y="208" fill="#58685c" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif" font-size="17" font-style="italic">Print what you see. Break where it makes sense.</text>
 
-  <text x="998" y="320" fill="#6f7a72" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15">3 &#215; A4 &#183; 同一份分页结果</text>
+  <!-- Core Value Checklist -->
+  <g transform="translate(60, 240)">
+    <!-- Item 1 -->
+    <g transform="translate(0, 0)">
+      <circle cx="10" cy="10" r="10" fill="#245e48"/>
+      <path d="M6 10 L9 13 L14 7" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="28" y="15" fill="#202922" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif" font-size="15" font-weight="600">DOM Range 测量文本行与表格</text>
+      <text x="245" y="15" fill="#66776b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif" font-size="14">— 杜绝半行截断与表格拦腰劈开</text>
+    </g>
+
+    <!-- Item 2 -->
+    <g transform="translate(0, 36)">
+      <circle cx="10" cy="10" r="10" fill="#245e48"/>
+      <path d="M6 10 L9 13 L14 7" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="28" y="15" fill="#202922" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif" font-size="15" font-weight="600">逐页分块渲染，内存恒定受控</text>
+      <text x="245" y="15" fill="#66776b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif" font-size="14">— 20 / 50 / 100 页告别 Canvas 超限白屏</text>
+    </g>
+
+    <!-- Item 3 -->
+    <g transform="translate(0, 72)">
+      <circle cx="10" cy="10" r="10" fill="#245e48"/>
+      <path d="M6 10 L9 13 L14 7" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="28" y="15" fill="#202922" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif" font-size="15" font-weight="600">离屏沙盒快照与真实可诊断</text>
+      <text x="245" y="15" fill="#66776b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif" font-size="14">— 源 DOM 零污染，支持取消、进度与可视化调试</text>
+    </g>
+  </g>
+
+  <!-- Badges / Output Tag -->
+  <g transform="translate(60, 360)">
+    <rect x="0" y="0" width="82" height="26" rx="6" fill="#18221b"/>
+    <text x="41" y="17" text-anchor="middle" fill="#ffffff" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" font-weight="600">PDF 导出</text>
+
+    <rect x="92" y="0" width="100" height="26" rx="6" fill="#ffffff" stroke="#245e48" stroke-width="1.2"/>
+    <text x="142" y="17" text-anchor="middle" fill="#245e48" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" font-weight="600">逐页 PNG 序列</text>
+
+    <text x="206" y="18" fill="#758579" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif" font-size="13">100% 纯前端执行 · 0 服务端依赖 · 真实业务报表验证</text>
+  </g>
+
+  <!-- Right Visual: Comparison Cards -->
+  <g transform="translate(630, 36)">
+
+    <!-- Card 1: Traditional Pixel-Clipping (The Problem) -->
+    <g transform="translate(0, 0)">
+      <rect x="0" y="0" width="240" height="336" rx="10" fill="#ffffff" stroke="#e0dedb" filter="url(#card-shadow)"/>
+      <!-- Header tag -->
+      <path d="M0 10 Q0 0 10 0 L230 0 Q240 0 240 10 L240 32 L0 32 Z" fill="#fcf0ef"/>
+      <text x="12" y="21" fill="#c43838" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" font-weight="700">TRADITIONAL (html2pdf)</text>
+      <circle cx="224" cy="16" r="4" fill="#c43838"/>
+
+      <!-- Document Mock Content -->
+      <g transform="translate(16, 44)">
+        <!-- Title & Subtitle -->
+        <rect x="0" y="0" width="120" height="8" rx="2" fill="#2d332f" opacity="0.75"/>
+        <rect x="0" y="13" width="70" height="5" rx="2" fill="#9fa8a1"/>
+
+        <!-- Normal Rows -->
+        <rect x="0" y="26" width="208" height="4" rx="1" fill="#cbd4cd"/>
+        <rect x="0" y="34" width="190" height="4" rx="1" fill="#cbd4cd"/>
+        <rect x="0" y="42" width="200" height="4" rx="1" fill="#cbd4cd"/>
+
+        <!-- Mini Table -->
+        <rect x="0" y="56" width="208" height="54" rx="4" fill="#f8f9f8" stroke="#e4e8e4"/>
+        <rect x="0" y="56" width="208" height="15" rx="4" fill="#eef2ee"/>
+        <rect x="8" y="62" width="40" height="4" fill="#78857c"/>
+        <rect x="70" y="62" width="40" height="4" fill="#78857c"/>
+        <rect x="150" y="62" width="30" height="4" fill="#78857c"/>
+
+        <rect x="8" y="78" width="50" height="3" fill="#9ba69e"/>
+        <rect x="70" y="78" width="55" height="3" fill="#9ba69e"/>
+        <rect x="150" y="78" width="25" height="3" fill="#9ba69e"/>
+
+        <rect x="8" y="92" width="45" height="3" fill="#9ba69e"/>
+        <rect x="70" y="92" width="48" height="3" fill="#9ba69e"/>
+        <rect x="150" y="92" width="28" height="3" fill="#9ba69e"/>
+
+        <!-- More paragraphs -->
+        <rect x="0" y="120" width="208" height="4" rx="1" fill="#cbd4cd"/>
+        <rect x="0" y="128" width="175" height="4" rx="1" fill="#cbd4cd"/>
+        <rect x="0" y="136" width="198" height="4" rx="1" fill="#cbd4cd"/>
+        <rect x="0" y="144" width="160" height="4" rx="1" fill="#cbd4cd"/>
+
+        <!-- THE CUT LINE (BLUNT PIXEL CUT) -->
+        <g transform="translate(-16, 154)">
+          <!-- Red Cut Line -->
+          <line x1="0" y1="0" x2="240" y2="0" stroke="#cf3838" stroke-width="2" stroke-dasharray="4 3"/>
+          <rect x="65" y="-10" width="110" height="20" rx="4" fill="#c43838"/>
+          <text x="120" y="4" text-anchor="middle" fill="#ffffff" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="10" font-weight="700">PIXEL CUT #692</text>
+        </g>
+
+        <!-- Truncated/Split Text & Rows (Damaged) -->
+        <rect x="0" y="152" width="208" height="3" rx="1" fill="#cf3838" opacity="0.6"/>
+        <rect x="0" y="157" width="180" height="2" rx="1" fill="#cf3838" opacity="0.3"/>
+
+        <!-- Second Page Ghost below cut -->
+        <g opacity="0.45" transform="translate(0, 168)">
+          <rect x="0" y="0" width="208" height="4" fill="#cf3838"/>
+          <rect x="0" y="8" width="170" height="4" fill="#a4aba6"/>
+          <rect x="0" y="16" width="195" height="4" fill="#a4aba6"/>
+
+          <!-- Blank Area Issue #512 -->
+          <rect x="0" y="28" width="208" height="50" rx="4" fill="#f4f4f4" stroke="#d5d5d5" stroke-dasharray="3 3"/>
+          <text x="104" y="56" text-anchor="middle" fill="#b03e3e" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10" font-weight="600">avoid-all 异常空白页 (#512)</text>
+          <text x="104" y="69" text-anchor="middle" fill="#999" font-family="ui-monospace, SFMono-Regular, sans-serif" font-size="9">长文档超限白屏 (#19)</text>
+        </g>
+      </g>
+
+      <!-- Bottom warning note -->
+      <rect x="12" y="296" width="216" height="28" rx="6" fill="#fff5f5" stroke="#f2c8c8"/>
+      <text x="120" y="314" text-anchor="middle" fill="#c43838" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="11" font-weight="600">文字截半 · 表格截断 · 漂移累积</text>
+    </g>
+
+    <!-- Arrow Transition -->
+    <g transform="translate(248, 150)">
+      <circle cx="16" cy="16" r="16" fill="#245e48" filter="url(#glow-badge)"/>
+      <path d="M11 16 L21 16 M17 11 L22 16 L17 21" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+
+    <!-- Card 2: Web Printer 3.0 (The Solution) -->
+    <g transform="translate(288, 0)">
+      <!-- Back Card Page 2 preview -->
+      <rect x="14" y="-8" width="240" height="336" rx="10" fill="#ffffff" stroke="#c0d4c6" opacity="0.6"/>
+      <rect x="22" y="-14" width="224" height="20" rx="4" fill="#d7e8dd" opacity="0.5"/>
+
+      <!-- Main Front Card Page 1 -->
+      <rect x="0" y="0" width="240" height="336" rx="10" fill="#ffffff" stroke="#245e48" stroke-width="1.8" filter="url(#card-shadow)"/>
+
+      <!-- Header tag -->
+      <path d="M0 10 Q0 0 10 0 L230 0 Q240 0 240 10 L240 32 L0 32 Z" fill="#edf5f0"/>
+      <text x="12" y="21" fill="#245e48" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" font-weight="800">WEB PRINTER 3.0</text>
+      <rect x="180" y="8" width="48" height="16" rx="4" fill="#245e48"/>
+      <text x="204" y="20" text-anchor="middle" fill="#ffffff" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="10" font-weight="700">PAGE 1</text>
+
+      <!-- Document Mock Content -->
+      <g transform="translate(16, 44)">
+        <!-- Title & Subtitle -->
+        <rect x="0" y="0" width="120" height="8" rx="2" fill="#18221b"/>
+        <rect x="0" y="13" width="70" height="5" rx="2" fill="#58685c"/>
+
+        <!-- Normal Rows -->
+        <rect x="0" y="26" width="208" height="4" rx="1" fill="#cbd4cd"/>
+        <rect x="0" y="34" width="190" height="4" rx="1" fill="#cbd4cd"/>
+        <rect x="0" y="42" width="200" height="4" rx="1" fill="#cbd4cd"/>
+
+        <!-- Intact Table with Atomic Row Protection -->
+        <rect x="0" y="56" width="208" height="56" rx="4" fill="#ffffff" stroke="#b2cfbe"/>
+        <rect x="0" y="56" width="208" height="16" rx="4" fill="#e8f2ec"/>
+        <rect x="8" y="62" width="40" height="4" fill="#245e48"/>
+        <rect x="70" y="62" width="40" height="4" fill="#245e48"/>
+        <rect x="150" y="62" width="30" height="4" fill="#245e48"/>
+
+        <!-- Protected Rows -->
+        <rect x="8" y="78" width="50" height="3" fill="#66776b"/>
+        <rect x="70" y="78" width="55" height="3" fill="#66776b"/>
+        <rect x="150" y="78" width="25" height="3" fill="#66776b"/>
+        <line x1="4" y1="88" x2="204" y2="88" stroke="#e4ece6"/>
+
+        <rect x="8" y="96" width="45" height="3" fill="#66776b"/>
+        <rect x="70" y="96" width="48" height="3" fill="#66776b"/>
+        <rect x="150" y="96" width="28" height="3" fill="#66776b"/>
+
+        <!-- More paragraphs -->
+        <rect x="0" y="122" width="208" height="4" rx="1" fill="#cbd4cd"/>
+        <rect x="0" y="130" width="175" height="4" rx="1" fill="#cbd4cd"/>
+        <rect x="0" y="138" width="198" height="4" rx="1" fill="#cbd4cd"/>
+        <rect x="0" y="146" width="160" height="4" rx="1" fill="#cbd4cd"/>
+
+        <!-- Content-Aware Break Point (Clean Break) -->
+        <g transform="translate(-16, 162)">
+          <line x1="0" y1="0" x2="240" y2="0" stroke="#245e48" stroke-width="2" stroke-dasharray="5 3"/>
+          <rect x="52" y="-10" width="136" height="20" rx="4" fill="#245e48"/>
+          <text x="120" y="4" text-anchor="middle" fill="#ffffff" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="10" font-weight="700">&#10003; CONTENT BREAK</text>
+        </g>
+
+        <!-- Clean Next Section Notice -->
+        <g transform="translate(0, 180)">
+          <rect x="0" y="0" width="208" height="54" rx="6" fill="#f4f8f5" stroke="#cbe0d2"/>
+          <circle cx="16" cy="18" r="6" fill="#245e48"/>
+          <path d="M13 18 L15 20 L19 16" fill="none" stroke="#fff" stroke-width="1.5"/>
+          <text x="28" y="21" fill="#245e48" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" font-weight="700">完整保护至 Page 2</text>
+          <text x="12" y="38" fill="#58685c" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10">文字行与表格行不截断 · 续页重复表头</text>
+          <text x="12" y="48" fill="#58685c" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10">逐页独立 Canvas 渲染 · 零累积误差</text>
+        </g>
+      </g>
+
+      <!-- Bottom Status Pill -->
+      <rect x="12" y="296" width="216" height="28" rx="6" fill="#eaf4ee" stroke="#b4d8c0"/>
+      <text x="120" y="314" text-anchor="middle" fill="#1b4d3a" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="11" font-weight="700">&#10003; 视觉保真 · 结构完整 · 稳定输出</text>
+    </g>
+
+  </g>
 </svg>

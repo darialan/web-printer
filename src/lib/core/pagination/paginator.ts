@@ -36,6 +36,14 @@ export function paginate(height: number, capacity: number, protectedRanges: Inte
       while (cursor < ranges.length && ranges[cursor].bottom <= end) cursor++;
       if (cursor < ranges.length && ranges[cursor].top < end) end = ranges[cursor].top;
     }
+    // A padding-only tail can otherwise create an unexpected blank final page.
+    // Retreat to the last protected block/line when both slices still advance
+    // and fit. Coverage is unchanged and all breakpoints remain legal.
+    const last = ranges[ranges.length - 1];
+    if (end < height && last && last.bottom <= end && last.top > start &&
+        last.top < end && height - last.top <= capacity) {
+      end = last.top;
+    }
     if (end <= start) throw new Error('页面高度不足，无法安全分页，请增大页面高度');
     pages.push({ start, end });
     start = end;

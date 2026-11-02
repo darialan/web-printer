@@ -18,6 +18,8 @@
 .language-toggle:hover { background:var(--bg2); }
 .landing-page .btn { border:0; border-radius:var(--radius); min-height:50px; padding:14px 22px; font-size:16px; }
 .landing-page .btn-dark { background:var(--accent); color:var(--bg); }
+.landing-page .btn-outline { background:transparent; border:1.5px solid var(--accent); color:var(--accent); }
+.landing-page .btn-outline:hover { background:var(--accent); color:var(--bg); }
 .landing-page .text-link { font-size:16px; color:var(--ink); }
 .landing-page .hero { display:grid; grid-template-columns:.95fr 1.05fr; align-items:center; gap:64px; padding-block:52px 68px; }
 .hero h1 { margin:0; font-size:clamp(52px,5.4vw,78px); letter-spacing:-.055em; line-height:1.16; font-weight:650; }

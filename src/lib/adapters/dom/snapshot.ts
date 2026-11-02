@@ -1,6 +1,8 @@
+import { isDebugLayer } from './debug-layers';
+import { assertNoLegacyIgnore, clipsAxis } from './visibility';
 import { freezePositioning, FrozenPosition, normalizeSnapshotPositions, registerFrozenPositions } from './positioning';
 import { waitForResources } from '../resources/resource-loader';
-import { classifyPrintNode, getPrintRules } from '../../core/rules/print-rules';
+import { assertSupportedRules, getPrintRules } from '../../core/rules/print-rules';
 import { PrintRule } from '../../core/types';
 
 export type SnapshotNodeTransform = (source: Element, clone: HTMLElement | SVGElement) => void;
@@ -21,7 +23,11 @@ export function copyResolvedStyle(source: Element, target: HTMLElement | SVGElem
       // Intrinsic media and tables must retain their rendered size when an ancestor
       // selector no longer matches in the detached snapshot. Generic flow boxes
       // keep auto sizing so margin collapse and table alignment remain unchanged.
-      if (!/^(IMG|CANVAS|SVG|TABLE|COL|COLGROUP)$/.test(source.tagName.toUpperCase())) continue;
+      const typed = (source as any).computedStyleMap?.().get(property)?.toString();
+      const constrained = typed !== undefined && typed !== 'auto';
+      const replaced = /^(IMG|CANVAS|SVG|TABLE|COL|COLGROUP)$/.test(source.tagName.toUpperCase());
+      const clipped = /^(height|block-size)$/.test(property) && clipsAxis(source, 'Y');
+      if (!constrained && !replaced && !clipped) continue;
     }
     target.style.setProperty(property, computed.getPropertyValue(property), computed.getPropertyPriority(property));
   }
@@ -35,21 +41,24 @@ export function copyResolvedStyle(source: Element, target: HTMLElement | SVGElem
  * inherited line-heights, or layout dimensions.
  */
 export function cloneWithResolvedStyles(source: HTMLElement, rules: readonly PrintRule[] = getPrintRules(), excludedElements: readonly Element[] = [], transformNode?: SnapshotNodeTransform): HTMLElement {
+  assertSupportedRules(rules);
+  assertNoLegacyIgnore(source);
   const ownerDoc = typeof document !== 'undefined' ? document : source.ownerDocument;
   const target = (ownerDoc?.importNode ? ownerDoc.importNode(source, true) : source.cloneNode(true)) as HTMLElement;
 
   const rootRect = source.getBoundingClientRect();
   const anchors: FrozenPosition[] = [];
+  const scrolls: { element: Element; top: number; left: number }[] = [];
 
   // Preserve form and canvas state that cloneNode/importNode does not copy.
   const sources = [source, ...Array.from(source.querySelectorAll('*'))];
   const targets = [target, ...Array.from(target.querySelectorAll('*'))];
   sources.forEach((node, i) => {
     const copy = targets[i];
-    if (!copy || copy.nodeType !== 1) return;
+    if (!copy || copy.nodeType !== 1 || (node !== source && !target.contains(copy))) return;
 
-    // Exclude before resource decoding and layout, including configured selectors.
-    if (node !== source && (excludedElements.includes(node) || /^(SCRIPT|NOSCRIPT)$/.test(node.tagName) || classifyPrintNode(node, rules)?.kind === 'ignore')) {
+    // Explicit caller exclusions and inert script handling are separate from element rules.
+    if (node !== source && (isDebugLayer(node) || excludedElements.some(excluded => excluded === node || excluded.contains(node)) || /^(SCRIPT|NOSCRIPT)$/.test(node.tagName))) {
       copy.remove();
       return;
     }
@@ -65,7 +74,9 @@ export function cloneWithResolvedStyles(source: HTMLElement, rules: readonly Pri
     } else if (tagName === 'textarea') {
       (copy as HTMLTextAreaElement).value = (node as HTMLTextAreaElement).value;
     } else if (tagName === 'select') {
-      (copy as HTMLSelectElement).selectedIndex = (node as HTMLSelectElement).selectedIndex;
+      Array.from((node as HTMLSelectElement).options).forEach((option, index) => {
+        (copy as HTMLSelectElement).options[index].selected = option.selected;
+      });
     } else if (tagName === 'canvas') {
       const canvasSource = node as HTMLCanvasElement;
       const canvasCopy = copy as HTMLCanvasElement;
@@ -98,6 +109,8 @@ export function cloneWithResolvedStyles(source: HTMLElement, rules: readonly Pri
       }
     }
 
+    if (node.scrollTop || node.scrollLeft) scrolls.push({ element: copy, top: node.scrollTop, left: node.scrollLeft });
+
     if ((copy as any).style) {
       copyResolvedStyle(node, copy as HTMLElement);
       if (node !== source) {
@@ -107,7 +120,6 @@ export function cloneWithResolvedStyles(source: HTMLElement, rules: readonly Pri
       transformNode?.(node, copy as HTMLElement | SVGElement);
     }
   });
-  target.querySelectorAll('[data-print-debug], [data-print-ignore="true"], [data-pdf-debug], [data-pdf-ignore="true"]').forEach(node => node.remove());
 
   // Retag a BODY print root as a DIV. html2canvas assumes a <body>/<html> target is the
   // document itself: it takes bounds from the capturing document and ignores the
@@ -141,9 +153,13 @@ export function cloneWithResolvedStyles(source: HTMLElement, rules: readonly Pri
     result.style.setProperty('box-sizing', 'border-box', 'important');
   }
 
+  if (isBodyTarget) scrolls.forEach(scroll => { if (scroll.element === target) scroll.element = result; });
+  snapshotScrolls.set(result, scrolls);
   registerFrozenPositions(result, anchors);
   return result;
 }
+
+const snapshotScrolls = new WeakMap<HTMLElement, { element: Element; top: number; left: number }[]>();
 
 /** Owns detached print DOM; callers dispose it on every success/error path. */
 export function createPrintSnapshot(width: number, rules: readonly PrintRule[] = getPrintRules(), excludedElements: readonly Element[] = [], transformNode?: SnapshotNodeTransform) {
@@ -165,7 +181,13 @@ export function createPrintSnapshot(width: number, rules: readonly PrintRule[] =
     mount: () => document.body.appendChild(host),
     ready: async (signal?: AbortSignal) => {
       await waitForResources(host, signal);
-      Array.from(host.children).forEach(root => normalizeSnapshotPositions(root as HTMLElement));
+      Array.from(host.children).forEach(root => {
+        for (const scroll of snapshotScrolls.get(root as HTMLElement) || []) {
+          scroll.element.scrollTop = scroll.top;
+          scroll.element.scrollLeft = scroll.left;
+        }
+        normalizeSnapshotPositions(root as HTMLElement);
+      });
     },
     dispose: () => host.remove(),
   };

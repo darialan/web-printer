@@ -15,6 +15,8 @@
    - [3.2 Vue 3 / Vite 组合式 API 接入](#32-vue-3--vite-组合式-api-接入)
    - [3.3 React 18 / 19 接入 (结合 useWebPrinter)](#33-react-18--19-接入-结合-usewebprinter)
    - [3.4 带有固定页眉、页脚与页码的复杂单据](#34-带有固定页眉页脚与页码的复杂单据)
+   - [3.5 iframe 隔离沙箱与独立网页打印](#35-iframe-隔离沙箱与独立网页打印)
+   - [3.6 导出参数与预览 API 参考](#36-导出参数与预览-api-参考)
 4. [核心底层机制与算法数学推导](#四核心底层机制与算法数学推导)
    - [4.1 页面几何换算模型与物理容量方程](#41-页面几何换算模型与物理容量方程)
    - [4.2 离屏快照克隆与计算样式冻结 (Style Freezing)](#42-离屏快照克隆与计算样式冻结-style-freezing)
@@ -27,6 +29,7 @@
    - [5.3 常见 UI 组件库（Ant Design、Element Plus 等）适配规则](#53-常见-ui-组件库ant-designelement-plus-等适配规则)
 6. [可视化调试与故障排查](#六可视化调试与故障排查)
 7. [生产环境避坑指南与常见问题 (FAQ)](#七生产环境避坑指南与常见问题-faq)
+8. [支持边界](#八支持边界)
 
 ---
 
@@ -34,7 +37,7 @@
 
 本项目采用 **双模式工程架构**：
 1. **工作台 / Demo 演示层**：基于 React 18 + Ant Design，用于业务单据可视化调试与测试验证（执行 `npm start` 即可运行）。
-2. **核心库打包层 (`@darialan/web-printer`)**：基于 Vite Library Mode + TypeScript 编译器，输出零污染、支持 Tree-shaking 的标准化产物。
+2. **核心库打包层 (`@darialan/web-printer`)**：基于 Vite Library Mode + TypeScript 编译器，输出支持 Tree-shaking 的 ESM / CJS 产物。
 
 ```
 项目根目录
@@ -59,7 +62,7 @@
 ### 构建命令
 
 ```bash
-# 1. 运行单次全量自动化测试（14 套单测，44 个测试用例，覆盖几何、测量、分页及导出服务）
+# 1. 运行单次全量自动化测试（当前 19 个测试套件、110 个用例，覆盖几何、规则、测量、分页、快照、截图及导出服务）
 npm run test:once
 
 # 2. 构建生产环境 NPM 产物（生成 ESM、CJS 及全套 TypeScript 类型定义）
@@ -333,6 +336,34 @@ await outputPDF({
 ```
 > **提示**：核心库是纯 DOM 引擎，只要目标节点是一个有效的 `HTMLElement`，无论它存在于主文档还是 `iframe.contentDocument` 中，都可以直接接收并完成计算样式冻结、测量与微切片导出。
 
+### 3.6 导出参数与预览 API 参考
+
+`outputDocument` / `outputPDF` 的完整参数：
+
+| 参数 | 说明 |
+| --- | --- |
+| `element` | 打印区域；同源 `<iframe>` 可直接传入 |
+| `format` | `'pdf'`（默认）或 `'png'` |
+| `download` | 默认 `true`；`false` 时只返回 Blob |
+| `settings` | 纸张、方向、边距、页眉页脚、页码；默认 A4 纵向、四边 10mm |
+| `header` / `footer` | 每页重复渲染的独立 DOM 元素 |
+| `onProgress` | `(completed, total) => void`，每页完成后回调 |
+| `maxPages` | 默认 100，超出直接报错 |
+| `rules` / `ruleConfig` | 覆盖或追加分页规则 |
+| `signal` | `AbortSignal`，页面之间检查取消 |
+
+返回 `{ blob, pages, bytes, layoutMs, totalMs, captures }`。只导出 PDF 时也可以用 `outputPDF()`。
+
+只测量、不截图、不生成文件的预览与检查 API：
+
+| API | 用途 |
+| --- | --- |
+| `createPrintSession(options)` | 冻结一次布局，供 `thumbnail(index)`、`exportDocument()` 复用；用完调用 `dispose()` |
+| `inspectPrintLayout({ contentElement, ...options })` | 只测量与检查，返回页数、断点、受保护区间和耗时 |
+| `calculatePagesArray(options)` | 只返回分页断点数组 |
+| `configurePrint(config)` / `resetPrintRules()` | 全局注册或重置规则选择器 |
+| `visualizePageBreaks(pages, element)` / `clearPageBreaks()` | 在独立调试层绘制或清理分页线，不改业务根节点 |
+
 ---
 
 ## 四、核心底层机制与算法数学推导
@@ -524,7 +555,7 @@ canvas.width = 0;
 canvas.height = 0;
 ```
 
-每生成一页，立即将 Canvas 的宽高置零，解除显存纹理绑定。整个生成生命周期中，内存占用始终平稳保持在 **单页大小（约 5~10MB）**，成功消除了大文档内存溢出隐患。
+每页处理后将 Canvas 宽高置零，释放该页位图。快照 DOM、html2canvas 克隆、PDF 和 PNG 编码字节仍占用内存，总内存随文档增长；这不保证不会 OOM。实际采样口径和 5/20/50 页结果由 Benchmark 生成。
 
 ---
 
@@ -532,15 +563,14 @@ canvas.height = 0;
 
 ### 5.1 HTML 属性与通用类名协议
 
-元素分类明确为三种：ignore 排除整个子树，atomic 整体保护且超高时报错，splittable 递归分析子节点。文本节点不进入元素分类，由 Range 按视觉行测量；整块优先保护选择器只是 splittable 元素的附加分页偏好。
+元素分类为 atomic 和 splittable：atomic 整体保护且超高时报错，splittable 递归分析子节点。文本节点不进入元素分类，由 Range 按视觉行测量；整块优先保护选择器只是 splittable 元素的附加分页偏好。
 
 | 规则类型 | HTML Attribute | CSS Class | 行为逻辑 |
 | --- | --- | --- | --- |
 | **原子不可分割** | `data-print-atomic="true"` | `.print-atomic` | 当前页放不下整块移到下一页，单块超过整页报明确错误 |
-| **打印忽略** | `data-print-ignore="true"` | `.print-ignore` | 完全排除在 PDF 之外 |
 | **可分割策略** | `data-print-splittable="true"` | `.print-splittable` | 整体放得下时优先保护；超高时递归拆分内部子元素，不报错；表格行（`tr` / `[role="row"]`）默认采用 |
 
-> 破坏性变更（v1.1.1 → 下一版本）：元素的默认分类现在明确为 `splittable`；文本节点仍由 Range 单独测量。`data-print-splittable="true"` / `.print-splittable` 以及旧 `data-print-keep-together="split"` / `.print-keep-or-split` 都将元素标记为 splittable，并参与整块优先保护；超高时递归拆分。旧 `data-print-break="split"` / `.print-force-split` 继续无操作。
+> 元素分类说明：元素的默认分类现在明确为 `splittable`；文本节点仍由 Range 单独测量。`data-print-splittable="true"` / `.print-splittable` 以及旧 `data-print-keep-together="split"` / `.print-keep-or-split` 都将元素标记为 splittable，并参与整块优先保护；超高时递归拆分。旧 `data-print-break="split"` / `.print-force-split` 继续无操作。
 >
 > 需要严格整体保护的选择器应配置为 `atomic`（超高时报错）；需要整块放得下时优先保护、超高可递归拆分的选择器应配置为 `splittable`。
 
@@ -564,12 +594,6 @@ await outputPDF({
       '.article-body',
       '.long-text-flow',
     ],
-    // 忽略不打印的选择器
-    ignore: [
-      '.ant-pagination',
-      '.action-bar',
-      '.download-btn',
-    ],
   },
 });
 ```
@@ -580,7 +604,7 @@ await outputPDF({
 
 `@darialan/web-printer` 默认内置了与主流组件库无缝兼容的规则：
 - **表格行**：所有 `tr`、`[role="row"]` 默认采用 splittable 策略——能整体放进一页就整体保护，放不下就递归拆分，不会报错也不会被从中间硬切断。`.ant-table-row`、`.el-table__row` 等组件库选择器需要业务方通过 `ruleConfig.atomic` 或 `ruleConfig.splittable` 显式注册（基础规则不内置任何组件库类名）。
-- **交互控件**：所有 `.ant-pagination`、分页器、隐藏标签自动忽略。
+- **交互控件**：可见按钮与分页器保留。调用方选择合适的打印根；CSS 隐藏元素遵守浏览器可见性语义。
 - **标题与媒体**：`h1~h6`、`img`、`svg`、`canvas` 自动作为原子保护。
 
 ---
@@ -621,7 +645,6 @@ console.table({
 ### 视觉图层标识含义：
 - 🟥 **红色实线框 + `atomic` 标签**：不可分割原子项，含命中 splittable 且能整体放入单页的情形（如表格行）。
 - 🟦 **蓝色虚线框 + `splittable` 标签**：拥有正文文本、允许被分页线切断的流式容器。
-- ⬜ **灰色虚线框 + `ignore` 标签**：打印忽略项。
 - 🟪 **紫色虚线 + 剪刀标 `✂️ page-break: 1122px (p.1 ➔ p.2)`**：真实分页物理切割线位置。
 
 ---
@@ -648,6 +671,20 @@ console.table({
 
 ---
 
+## 八、支持边界
+
+打印根节点决定导出范围。导出保留原宽度、布局、内部滚动位置、当前表单值和可读取 Canvas 的绘制；不自动展开滚动组件、加载虚拟列表或隐藏工具栏。普通文档滚动不限制正文长度。图片跨域读取、Shadow DOM、复杂变换和依赖外部祖先的伪元素需要单独验证。
+
+PDF 正文是光栅图像，没有可选中文字层。截图能力受 html2canvas 1.4.1 限制，例如 `oklch()` / `color-mix()` 会报错。单页截图限制 8M 像素和 8192px 单边，初始 scale 2，超预算时缩放；整篇文字和高度各有 200,000 上限，默认最多 100 页。截图 Canvas 会逐页释放，但 PDF、PNG 字节和 DOM 快照仍占用内存，总内存不恒定。
+
+`outputDocument()` 返回的 `captures` 记录每次截图的 `y`、`height`、像素数、克隆与资源等待耗时、解析与渲染耗时。阶段分界是 html2canvas 的 `onclone` 回调，不是浏览器内部 profiler。Benchmark 同时保存原页面、离屏快照、导出 PDF 回拼图和差异图；几何一致、截图差异和性能分别报告。
+
 ## 结语
 
-`@darialan/web-printer` 通过将计算样式冻结、行级 Range 测量、贪心回退分页与按页微切片渲染分层解耦，构筑起一套高保真、低内存、零截断的前端打印基础设施。欢迎在各类中后台单据与报表导出场景中深度应用！
+`@darialan/web-printer` 通过将计算样式冻结、行级 Range 测量、贪心回退分页与按页微切片渲染分层解耦，组成浏览器内的内容感知分页导出方案。固定样本的实测结果见 Benchmark，无法还原的 CSS 与资源上限见上文「支持边界」。
+
+## 3.0 改造边界
+
+ignore API 与标记已删除并采用迁移阻断，见 [3.0 迁移说明](https://github.com/darialan/web-printer/blob/master/docs/migration-to-v3.md)。滚动位置、裁剪、sticky/fixed 与多选状态通过快照保存；调试层独立于业务根。截图超时为 30 秒，资源预检为 15 秒。
+
+可复现视觉与性能对照见 [Benchmark](https://github.com/darialan/web-printer/blob/master/docs/benchmark.md)。逐页截图仍可能重复解析整个快照，不把像素预算等同于总内存上限。

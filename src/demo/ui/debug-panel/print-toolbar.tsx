@@ -168,7 +168,7 @@ export function PrintObservabilityBanner({
         <span className="legend-item legend-item-line">
           ✂️ page-break
         </span>
-        {(stats?.ignore ?? 0) > 0 && <span className="legend-item legend-item-ignore">ignore: {stats?.ignore}</span>}
+        {(stats?.excluded ?? 0) > 0 && <span className="legend-item legend-item-excluded">excluded: {stats?.excluded}</span>}
         {onClose && (
           <button
             type="button"

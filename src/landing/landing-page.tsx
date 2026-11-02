@@ -151,7 +151,10 @@ export function LandingPage() {
       <div className="landing-container nav-wrap">
         <a className="brand" href="#/" aria-label={t.home}><BrandMark /><BrandWordmark /></a>
         <div className="nav-links">
-          <a href="#features">{t.features}</a><a href="#playground">{t.examples}</a><a href="#quickstart">{t.integration}</a><a href="#faq">{t.faq}</a>
+          <a href="#features">{t.features}</a>
+          <a href="#playground">{t.examples}</a>
+          <a href="#quickstart">{t.integration}</a>
+          <a href="#faq">{t.faq}</a>
         </div>
         <div className="nav-actions">
           <button type="button" className="language-toggle" onClick={() => setLocale(locale === 'zh' ? 'en' : 'zh')} aria-label={t.language} title={t.language}>
@@ -169,6 +172,7 @@ export function LandingPage() {
       <header className="hero landing-container">
         <div className="hero-copy">
           <h1>{t.headline[0]}<br />{t.headline[1]}</h1>
+          <p className="hero-slogan" style={{ fontStyle: 'italic', color: 'var(--accent)', margin: '6px 0 16px', fontSize: '18px', fontWeight: 500 }}>{t.sloganEn}</p>
           <p className="lede">{t.lede}</p>
           <div className="cta-row">
             <a href="#/playground" className="btn btn-dark">{t.try}<Icon name="arrow" size={18} /></a>
@@ -199,9 +203,32 @@ export function LandingPage() {
           {t.rules.map((rule, index) => <article className="rule-row" key={index} data-reveal>
             <h3>{rule.title}</h3><p>{rule.body}</p>
             <div className={`rule-specimen specimen-${index}`} aria-hidden="true">
-              {index === 0 ? <><span className="text-line" /><span className="text-line" /><span className="text-line short" /><span className="page-gap" /><span className="text-line" /><span className="text-line" /></>
-                : index === 1 ? <><Icon name="layers" size={30} /><code>{rule.specimen}</code></>
-                : <div className="paper-sizes"><span>A4</span><span>1:1</span><span>3:4</span><span>9:16</span></div>}
+              {index === 0 ? (
+                <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr', gap: 6, width: 140, height: 68, border: '1.5px dashed var(--accent)', padding: 6, borderRadius: 6, background: 'var(--card)' }}>
+                  <div style={{ background: 'var(--stage-ink)', opacity: 0.15, borderRadius: 3 }}></div>
+                  <div style={{ display: 'grid', gap: 4 }}>
+                    <div style={{ height: 14, background: 'var(--stage-ink)', opacity: 0.25, borderRadius: 2 }}></div>
+                    <div style={{ height: 28, background: 'var(--stage-ink)', opacity: 0.15, borderRadius: 2 }}></div>
+                  </div>
+                </div>
+              ) : index === 1 ? (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', alignContent: 'center', gap: 6, padding: '12px 20px', background: 'var(--card)', width: 140, borderRadius: 6 }}>
+                  <span className="text-line" /><span className="text-line" /><span className="text-line short" />
+                  <span style={{ display: 'block', height: 6, borderBottom: '1.5px dashed var(--accent)', margin: '2px 0' }} />
+                  <span className="text-line" /><span className="text-line" />
+                </div>
+              ) : index === 2 ? (
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {['P.1', 'P.2', 'P.3'].map(p => (
+                    <span key={p} style={{ display: 'grid', placeItems: 'center', width: 40, height: 54, background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 4, fontSize: 12, fontWeight: 600, color: 'var(--accent)' }}>{p}</span>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', border: '1.5px dashed #ef4444', borderRadius: 6, background: 'rgba(239, 68, 68, 0.08)', color: '#ef4444', fontSize: 13, fontWeight: 600 }}>
+                  <span style={{ fontSize: 16 }}>✂️</span>
+                  <span>safe break: 1047px</span>
+                </div>
+              )}
             </div>
           </article>)}
         </div>

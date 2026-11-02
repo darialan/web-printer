@@ -1,5 +1,6 @@
+import { assertNoLegacyIgnore, isDisplaySuppressed, isPaintVisible } from '../dom/visibility';
 import { checkCancelled } from '../../application/cancellation';
-import { classifyPrintNode, getPrintRules } from '../../core/rules/print-rules';
+import { assertSupportedRules, getPrintRules } from '../../core/rules/print-rules';
 import { PrintRule } from '../../core/types';
 
 async function settleLayout(signal?: AbortSignal) {
@@ -14,6 +15,8 @@ async function settleLayout(signal?: AbortSignal) {
 
 export async function waitForResources(host: HTMLElement, signal?: AbortSignal, rules: readonly PrintRule[] = getPrintRules(), excludedElements: readonly Element[] = []) {
   checkCancelled(signal);
+  assertSupportedRules(rules);
+  assertNoLegacyIgnore(host);
   let timeout: ReturnType<typeof setTimeout>;
   let abort = () => {};
   const guard = new Promise<never>((_, reject) => {
@@ -28,10 +31,10 @@ export async function waitForResources(host: HTMLElement, signal?: AbortSignal, 
         ...[...(host.tagName === 'IMG' ? [host as HTMLImageElement] : []), ...Array.from(host.querySelectorAll('img'))].filter(img => {
           // Source readiness must not wait on explicitly excluded resources.
           for (let node: Element | null = img; node; node = node.parentElement) {
-            if (excludedElements.includes(node) || classifyPrintNode(node, rules)?.kind === 'ignore') return false;
+            if (excludedElements.includes(node) || isDisplaySuppressed(node)) return false;
             if (node === host) break;
           }
-          return true;
+          return isPaintVisible(img);
         }).map(async img => {
           try { await img.decode(); }
           catch { throw new Error(`图片加载失败：${img.alt || '未命名图片'}`); }

@@ -22,7 +22,7 @@ describe('Web Printer Lib Entry Point', () => {
   it('exports attributes and class standards', () => {
     expect(PRINT_ATTRIBUTES.ATOMIC).toContain('data-print-atomic');
     expect(PRINT_ATTRIBUTES.SPLITTABLE).toContain('data-print-splittable');
-    expect(PRINT_ATTRIBUTES.IGNORE).toContain('data-print-ignore');
+    expect(PRINT_ATTRIBUTES).not.toHaveProperty('IGNORE');
     expect(PRINT_CLASSES.ATOMIC).toBe('print-atomic');
   });
 

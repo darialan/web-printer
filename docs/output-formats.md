@@ -1,6 +1,6 @@
 # 分页输出层：PDF 与 PNG
 
-以当前四个 playground 场景为基础。分页是核心能力，PDF 和分页图片是同一份分页结果的两种输出；本次不调整测量、保护规则或分页算法。
+PDF 和分页 PNG 使用同一份快照、分页结果和逐页截图；Writer 只负责纸张合成与文件编码。
 
 ## 使用
 
@@ -20,7 +20,7 @@ const result = await outputDocument({
 });
 // PNG 模式：result.blob 是 application/zip，内含逐页 PNG。
 // PDF 模式：result.blob 是 application/pdf。
-// result.pages / bytes / layoutMs / totalMs 两种格式均可用。
+// result.pages / bytes / layoutMs / totalMs / captures 两种格式均可用。
 
 // 原有 PDF 调用保持兼容：
 await outputPDF({ element: document.getElementById('content'), filename: '报告' });
@@ -44,4 +44,6 @@ await outputPDF({ element: document.getElementById('content'), filename: '报告
 
 ## 验证
 
-单测覆盖 ZIP CRC32/目录偏移、纸张合成坐标、页眉页脚与页码、编码失败/取消清理和共享导出链路。浏览器自动化覆盖四个场景的真实 ZIP 下载，逐页解码 PNG、检查非空像素、纸张比例、连续文件名，以及与预览一致的页数；原有 PDF 自动化作为回归继续执行。
+单测覆盖 ZIP CRC32/目录偏移、纸张合成坐标、页眉页脚与页码、编码失败/取消清理和共享导出链路。`e2e/v3.spec.mjs` 下载真实 PNG ZIP，校验三页连续文件名和逐页颜色；下载 PDF 后用 PDF.js 校验页数。Benchmark 的固定样本进一步比较原页面、快照和实际 PDF 栅格图，复现命令与指标边界见 [Benchmark](https://github.com/darialan/web-printer/blob/master/docs/benchmark.md)。
+
+截图在 `onclone` 前后都持有自己的 iframe 引用，失败、取消与 30 秒超时均清理；晚返回的 Canvas 清零。取消无法抢占浏览器正在同步执行的一段 JavaScript，但不会开始后续页面或下载半成品。新增 `captures` 诊断记录每次截图的像素数和阶段时序。PNG 累计编码预算仍为 128 MiB，PDF 组装字节也随文档增长。

@@ -8,19 +8,10 @@ export interface ClassifiableNode {
 
 const ELEMENT_NODE_TYPE = 1;
 
-/**
- * 打印系统三大标准属性协议 (Data Attributes & Classes)
- * 纯原生技术无关的标准协议，业务方自写组件或页面时直接绑定：
- * 1. ignore: 不打印，完全排除在打印纸张外
- * 2. atomic: 最小原子单元，不可分割，超过单页可用高度直接报错
- * 3. splittable: 元素分类，默认递归分析子节点；部分选择器另有整块优先保护策略
- * 文本节点由 DOM 测量层使用 Range 逐行测量。
- */
+/** Atomic protects whole elements; splittable recursively measures children. */
 export const PRINT_ATTRIBUTES = {
   /** 不可分割：最小原子化单元，严禁跨页切断，超过单页可用高度直接报错 */
   ATOMIC: 'data-print-atomic="true"',
-  /** 打印忽略：不参与测量、快照与打印渲染 */
-  IGNORE: 'data-print-ignore="true"',
   /** 可分割元素分类；命中整块优先保护选择器时尽量整块保留，超高时递归拆分；表格行默认采用此偏好 */
   SPLITTABLE: 'data-print-splittable="true"',
 
@@ -31,7 +22,6 @@ export const PRINT_ATTRIBUTES = {
 
 export const PRINT_CLASSES = {
   ATOMIC: 'print-atomic',
-  IGNORE: 'print-ignore',
   /** 可分割元素分类；命中整块优先保护选择器时尽量整块保留，超高时递归拆分；表格行默认采用此偏好 */
   SPLITTABLE: 'print-splittable',
 
@@ -44,24 +34,14 @@ export const PRINT_CLASSES = {
 export const PDF_PRINT_ATTRIBUTES = {
   ATOMIC: 'data-pdf-atomic="true"',
   SPLITTABLE: 'data-pdf-splittable="true"',
-  IGNORE: 'data-pdf-ignore="true"',
 } as const;
 /** @deprecated Use PRINT_CLASSES. Legacy classes remain accepted. */
 export const PDF_PRINT_CLASSES = {
-  ATOMIC: 'pdf-atomic', SPLITTABLE: 'pdf-splittable', IGNORE: 'pdf-ignore',
+  ATOMIC: 'pdf-atomic', SPLITTABLE: 'pdf-splittable',
 } as const;
 
-/**
- * 核心基础规则（BASE_PRINT_RULES）
- * 定义 ignore（不打印）与 atomic（严格不可分割）规则；未命中的元素由分类函数归为 splittable。
- * 遵循技术无关、纯原生标准原则：只包含 HTML 标准元素与通用打印协议，绝不硬编码任何具体前端组件库类名。
- */
+/** Native atomic rules. Every other element is splittable. */
 export const BASE_PRINT_RULES: readonly PrintRule[] = [
-  // 1. 忽略规则（不打印：标准不可见标签与协议标记）
-  {
-    selector: 'script, style, template, [hidden], [data-print-debug], [data-print-ignore="true"], .print-ignore, [data-pdf-debug], [data-pdf-ignore="true"], .pdf-ignore',
-    result: { kind: 'ignore' },
-  },
   // 2. 不可分割规则（显式声明的原子保护块：严禁拆分，超高报错）
   {
     selector:
@@ -91,9 +71,10 @@ export const BASE_SPLITTABLE_SELECTOR =
   '[data-print-splittable="true"], .print-splittable, [data-print-keep-together="split"], .print-keep-or-split, [data-pdf-splittable="true"], .pdf-splittable, [data-pdf-keep-together="split"], .pdf-keep-or-split, tr, [role="row"]';
 
 /**
- * 根据基础规则与配置构造最终生效的规则列表（只产出 ignore / atomic）
+ * 根据基础规则与配置构造最终生效的规则列表（atomic / splittable）
  */
 export function buildPrintRules(config?: PrintRuleConfig): PrintRule[] {
+  assertSupportedRuleConfig(config);
   if (!config) return [...BASE_PRINT_RULES];
 
   const customList: PrintRule[] = [];
@@ -101,14 +82,6 @@ export function buildPrintRules(config?: PrintRuleConfig): PrintRule[] {
   // 用户完全自定义的高级规则优先
   if (config.customRules?.length) {
     customList.push(...config.customRules);
-  }
-
-  // 自定义忽略（不打印）
-  if (config.ignore?.length) {
-    customList.push({
-      selector: config.ignore.join(', '),
-      result: { kind: 'ignore' },
-    });
   }
 
   // 自定义不可分割原子项（atomic）
@@ -129,6 +102,7 @@ export function buildPrintRules(config?: PrintRuleConfig): PrintRule[] {
  * 使用 splittable 字段注册选择器；forceSplit 已废弃为无操作。
  */
 export function buildSplittableSelector(config?: PrintRuleConfig): string {
+  assertSupportedRuleConfig(config);
   const extraSelectors = config?.splittable || [];
   const extra = extraSelectors.length ? extraSelectors.join(', ') + ', ' : '';
   return extra + BASE_SPLITTABLE_SELECTOR;
@@ -141,8 +115,10 @@ let activeSplittableSelector: string = buildSplittableSelector();
  * 全局统一配置打印规则（业务层通过此处注册各自技术栈/组件库的选择器）
  */
 export function configurePrint(config: PrintRuleConfig): void {
-  activePrintRules = buildPrintRules(config);
-  activeSplittableSelector = buildSplittableSelector(config);
+  const rules = buildPrintRules(config);
+  const selector = buildSplittableSelector(config);
+  activePrintRules = rules;
+  activeSplittableSelector = selector;
 }
 
 /**
@@ -175,6 +151,7 @@ export function classifyPrintNode(
   node: ClassifiableNode,
   rules: readonly PrintRule[] = getPrintRules()
 ): ElementRule | undefined {
+  assertSupportedRules(rules);
   if (node.nodeType !== ELEMENT_NODE_TYPE || typeof node.matches !== 'function') {
     return undefined;
   }
@@ -202,4 +179,18 @@ export function assertAtomicFits(
  */
 export function resolveSplittable(height: number, capacity: number): 'protect' | 'descend' {
   return height <= capacity ? 'protect' : 'descend';
+}
+
+/** Fail closed for JavaScript callers upgrading from the removed ignore API. */
+export function assertSupportedRuleConfig(config?: PrintRuleConfig): void {
+  if (config && Object.prototype.hasOwnProperty.call(config, 'ignore')) {
+    throw new Error('Web Printer 3: PrintRuleConfig.ignore 已移除；请移除旧配置并选择合适的打印根节点');
+  }
+  assertSupportedRules(config?.customRules);
+}
+
+export function assertSupportedRules(rules?: readonly PrintRule[]): void {
+  if (rules?.some(rule => !['atomic', 'splittable'].includes(rule.result?.kind))) {
+    throw new Error('Web Printer 3: ignore 元素分类已移除；规则只支持 atomic / splittable，请迁移旧规则');
+  }
 }

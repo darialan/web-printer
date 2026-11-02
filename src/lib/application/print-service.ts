@@ -85,6 +85,7 @@ export async function exportPreparedLayout(layout: PreparedLayout, options: Omit
       layoutMs,
       totalMs: performance.now() - started,
       bytes: blob.size,
+      captures: renderer.timings?.slice() || [],
     };
   } finally {
     writer?.dispose?.();
@@ -110,9 +111,7 @@ export async function inspectPrintLayout({
     const rules = options.rules || (options.ruleConfig ? buildPrintRules(options.ruleConfig) : getPrintRules());
     const splittableSelector = options.splittableSelector
       || (options.ruleConfig ? buildSplittableSelector(options.ruleConfig) : getSplittableSelector());
-    // Removing ignore nodes can reflow flex/grid and collapse margins. Comparing
-    // those print coordinates with live source coordinates is invalid. Validate
-    // against the actual snapshot used by both preview and export instead.
+    // Validate in the same frozen coordinate space used by capture.
     const snapshotMeasurement = measureDocument(layout.root, layout.capacity, rules, splittableSelector);
     validatePageBreaks(layout.pages, snapshotMeasurement.ranges);
     const result: PrintInspectionResult = {

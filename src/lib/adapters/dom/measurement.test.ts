@@ -16,7 +16,7 @@ test('classification is independent of Ant Design classes and can be extended', 
 
   const ignored = document.createElement('div');
   ignored.setAttribute('data-print-ignore', 'true');
-  expect(classifyPrintNode(ignored)).toEqual({ kind: 'ignore' });
+  expect(classifyPrintNode(ignored)).toEqual({ kind: 'splittable' });
 
   const quote = document.createElement('blockquote');
   expect(
@@ -135,9 +135,9 @@ test('a table row that does not fit a page descends instead of throwing, unlike 
   expect(() => measureDocument(root, 100)).not.toThrow();
 });
 
-test('live measurements retain their DOM coordinate space; ignore removal belongs to snapshot layout', () => {
+test('live measurements retain their DOM coordinate space for visible controls', () => {
   const root = document.createElement('div');
-  root.innerHTML = '<div data-print-ignore="true" style="margin-bottom:16px">filters</div><table><tbody><tr><td>row</td></tr></tbody></table>';
+  root.innerHTML = '<div style="margin-bottom:16px">filters</div><table><tbody><tr><td>row</td></tr></tbody></table>';
   setRect(root, 100, 548);
   setRect(root.firstElementChild!, 100, 32);
   setRect(root.querySelector('tr')!, 248, 55);
@@ -153,7 +153,7 @@ test('the selected root itself honors atomic and ignore protocols', () => {
   expect(measureDocument(root, 500).ranges).toEqual([{ top: 0, bottom: 300 }]);
   expect(() => measureDocument(root, 200)).toThrow('超过');
   root.setAttribute('data-print-ignore', 'true');
-  expect(() => measureDocument(root, 500)).toThrow('ignore');
+  expect(() => measureDocument(root, 500)).toThrow('检测到已移除的 ignore 标记');
 });
 
 test('a nested atomic element inside another atomic element is protected once by the outer boundary', () => {
@@ -168,9 +168,9 @@ test('a nested atomic element inside another atomic element is protected once by
   expect(result.stats.atomicElements).toBe(1);
 });
 
-test('an ignored subtree skips nested atomic elements and text entirely', () => {
+test('a display:none subtree skips nested atomic elements and text entirely', () => {
   const root = document.createElement('div');
-  root.innerHTML = '<div data-print-ignore="true"><img alt="hidden"><p>hidden text</p></div><p>visible text</p>';
+  root.innerHTML = '<div style="display:none"><img alt="hidden"><p>hidden text</p></div><p>visible text</p>';
   setRect(root, 0, 300);
   setRect(root.querySelector('img')!, 10, 50);
   const range = jest.spyOn(document, 'createRange').mockReturnValue({
@@ -210,11 +210,11 @@ test('long text that auto-wraps into multiple visual lines produces one protecte
   }
 });
 
-test('mixed text, image, table row and an ignored block resolve independently in one pass', () => {
+test('mixed text, image, table row and a CSS-hidden block resolve independently in one pass', () => {
   const root = document.createElement('div');
   root.innerHTML =
     '<p>intro text</p>' +
-    '<div data-print-ignore="true"><img alt="hidden"></div>' +
+    '<div style="display:none"><img alt="hidden"></div>' +
     '<img alt="visible">' +
     '<table><tbody><tr><td>cell text</td></tr></tbody></table>';
   setRect(root, 0, 600);

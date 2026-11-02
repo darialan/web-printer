@@ -8,7 +8,7 @@ afterEach(() => {
   clearPageBreaks();
 });
 
-test('visualizePageBreaks 能够全覆盖标记 atomic, splittable 与 ignore 规则', () => {
+test('visualizePageBreaks 能够全覆盖标记 atomic 与 splittable 规则', () => {
   const container = document.createElement('div');
   container.innerHTML = `
     <h2 style="width: 200px; height: 30px;">标题文本</h2>
@@ -19,7 +19,7 @@ test('visualizePageBreaks 能够全覆盖标记 atomic, splittable 与 ignore �
       </tbody>
     </table>
     <p style="width: 200px; height: 40px;">段落说明，可按行自由切分</p>
-    <div data-print-ignore="true" style="width: 200px; height: 20px;">忽略按钮</div>
+    
   `;
   document.body.appendChild(container);
 
@@ -37,18 +37,18 @@ test('visualizePageBreaks 能够全覆盖标记 atomic, splittable 与 ignore �
 
   expect(stats.atomic).toBe(3);      // 1 个 h2 标题 + 2 个 tr (atomic 不可分割)
   expect(stats.splittable).toBe(1); // p 段落文本流 (splittable 可分割)
-  expect(stats.ignore).toBe(1);     // 忽略元素 (ignore 不打印)
+  expect(stats.excluded).toBe(0);     // 忽略元素 (ignore 不打印)
 
   // 页面上存在调试遮罩层
-  const debugNodes = container.querySelectorAll('[data-print-debug="true"]');
+  const debugNodes = document.querySelectorAll('[data-print-debug="true"]');
   expect(debugNodes.length).toBeGreaterThan(0);
   const labels = Array.from(debugNodes).flatMap(node => Array.from(node.querySelectorAll('span')).map(span => span.textContent));
-  expect(labels).toEqual(expect.arrayContaining(['atomic', 'splittable', 'ignore']));
+  expect(labels).toEqual(expect.arrayContaining(['atomic', 'splittable']));
   expect(labels.some(label => label?.includes('page-break'))).toBe(true);
 
   // 清除后完全移除
   clearPageBreaks();
-  expect(container.querySelectorAll('[data-print-debug="true"]')).toHaveLength(0);
+  expect(document.querySelectorAll('[data-print-debug="true"]')).toHaveLength(0);
 
   container.remove();
 });
@@ -66,10 +66,10 @@ test('a custom splittable selector overrides the native table-row default and cl
   const stats = visualizePageBreaks([0, 50], first, undefined, undefined, undefined, 'never-matches-anything');
   expect(stats.atomic).toBe(0);
   visualizePageBreaks([0], second);
-  expect(first.querySelector('[data-print-debug]')).not.toBeNull();
+  expect(document.querySelectorAll('body > [data-print-debug]')).toHaveLength(2);
   clearPageBreaks(first);
   expect(first.querySelector('[data-print-debug]')).toBeNull();
-  expect(second.querySelector('[data-print-debug]')).not.toBeNull();
+  expect(document.querySelectorAll('body > [data-print-debug]')).toHaveLength(1);
   clearPageBreaks(second);
   first.remove(); second.remove();
 });
@@ -92,7 +92,7 @@ test('媒体包装段落（<p> 里只有一张图）标为 atomic，而不是 sp
   expect(stats.atomic).toBe(1);
   expect(stats.splittable).toBe(1);
 
-  const badges = Array.from(container.querySelectorAll('[data-print-debug="true"] span'))
+  const badges = Array.from(document.querySelectorAll('[data-print-debug="true"] span'))
     .map(span => span.textContent);
   expect(badges.filter(text => text === 'atomic')).toHaveLength(1);
   expect(badges.filter(text => text === 'splittable')).toHaveLength(1);
@@ -111,7 +111,7 @@ test('标记层的 z-index 保持在最顶层（高于任意站点元素）', ()
 
   visualizePageBreaks([0, 300], container);
 
-  const debugNodes = Array.from(container.querySelectorAll<HTMLElement>('[data-print-debug="true"]'));
+  const debugNodes = Array.from(document.querySelectorAll<HTMLElement>('[data-print-debug="true"]'));
   const layerOf = (node: HTMLElement) => Number(node.style.zIndex || node.querySelector<HTMLElement>('span')?.style.zIndex || 0);
   const top = Math.max(...debugNodes.map(layerOf));
   // 用户明确要求标记在最顶层；max z-index 接近 2^31，所有站点导航都无法盖住标记
@@ -120,11 +120,24 @@ test('标记层的 z-index 保持在最顶层（高于任意站点元素）', ()
   container.remove();
 });
 
-test('explicit exclusions render ignore markers without changing source attributes', () => {
+test('explicit exclusions render separate markers without changing source attributes', () => {
   const root=document.createElement('article');const excluded=document.createElement('aside');excluded.textContent='广告';root.append(excluded);document.body.append(root);
   root.getBoundingClientRect=()=>({left:0,top:0,width:400,height:200} as DOMRect);
   excluded.getBoundingClientRect=()=>({left:0,top:20,width:400,height:40} as DOMRect);
   const attrs=excluded.outerHTML;
   const stats=visualizePageBreaks([],root,undefined,[excluded]);
-  expect(stats.ignore).toBeGreaterThan(0);expect(root.querySelector('[data-print-debug]')?.textContent).toBe('ignore');expect(excluded.outerHTML).toBe(attrs);clearPageBreaks(root);root.remove();
+  expect(stats.excluded).toBeGreaterThan(0);expect(document.querySelector('[data-print-debug]')?.textContent).toBe('excluded');expect(excluded.outerHTML).toBe(attrs);clearPageBreaks(root);root.remove();
+});
+
+test('debug visualization does not mutate business DOM or remove business debug attributes', () => {
+  const root = document.createElement('article');
+  root.innerHTML = '<p data-print-debug="business">content</p>';
+  document.body.append(root);
+  root.getBoundingClientRect = () => ({ left: 20, top: 30, width: 400, height: 200 } as DOMRect);
+  const before = root.outerHTML;
+  visualizePageBreaks([0, 100], root);
+  expect(root.outerHTML).toBe(before);
+  clearPageBreaks(root);
+  expect(root.outerHTML).toBe(before);
+  root.remove();
 });

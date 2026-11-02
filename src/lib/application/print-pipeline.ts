@@ -14,6 +14,8 @@ import {
   PrintRuleConfig,
   PrintSettings,
 } from '../core/types';
+import { assertNoLegacyIgnore } from '../adapters/dom/visibility';
+import { assertSupportedRules } from '../core/rules/print-rules';
 import { checkCancelled } from './cancellation';
 
 export type { Orientation } from '../core/types';
@@ -169,12 +171,19 @@ export async function prepareLayout(options: LayoutOptions): Promise<PreparedLay
     throw new Error('打印区域宽度为零，请先显示内容');
   }
   checkCancelled(signal);
-  activeRoots.add(printElement);
   const rules = options.rules || (options.ruleConfig ? buildPrintRules(options.ruleConfig) : getPrintRules());
   const splittableSelector = options.splittableSelector
     || (options.ruleConfig ? buildSplittableSelector(options.ruleConfig) : getSplittableSelector());
+  assertSupportedRules(rules);
+  assertNoLegacyIgnore(printElement);
+  if (header) assertNoLegacyIgnore(header);
+  if (footer) assertNoLegacyIgnore(footer);
+  activeRoots.add(printElement);
+  let cleaned = false;
   let snapshot: ReturnType<typeof createPrintSnapshot> | undefined;
   const cleanup = () => {
+    if (cleaned) return;
+    cleaned = true;
     snapshot?.dispose();
     activeRoots.delete(printElement);
   };
@@ -182,6 +191,9 @@ export async function prepareLayout(options: LayoutOptions): Promise<PreparedLay
     // Readiness must precede style freezing: otherwise an image still loading
     // can have its temporary 0px height frozen permanently into the snapshot.
     await waitForResources(printElement, signal, rules, [...(options.excludedElements || []), ...(options.resourceExcludedElements || [])]);
+    for (const extra of [header, footer]) {
+      if (extra && isPrintableElement(extra)) await waitForResources(extra, signal, rules);
+    }
     width = printElement.getBoundingClientRect().width;
     if (!Number.isFinite(width) || width <= 0) throw new Error('打印区域宽度为零，请先显示内容');
     snapshot = createPrintSnapshot(width, rules, options.excludedElements, options.transformSnapshotNode);

@@ -1,0 +1,11 @@
+import {spawnSync} from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+const run=(command,args)=>spawnSync(command,args,{stdio:'inherit',env:process.env});
+const prepared=run(process.execPath,['scripts/benchmark/prepare-baseline.mjs']);
+if(prepared.status!==0)process.exit(prepared.status||1);
+const tested=run(process.execPath,['node_modules/@playwright/test/cli.js','test','--config','benchmark.config.mjs']);
+const results=path.join(process.env.BENCHMARK_OUTPUT||'.benchmark/results','results.json');
+let report;
+if(fs.existsSync(results))report=run(process.execPath,['scripts/benchmark/report.mjs']);
+process.exit(tested.status||report?.status||0);

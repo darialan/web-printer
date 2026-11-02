@@ -1,0 +1,219 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="560" viewBox="0 0 1200 560" role="img" aria-labelledby="insp-title insp-desc">
+  <title id="insp-title">分页可诊断与内容感知断点可视化</title>
+  <desc id="insp-desc">展示 Web Printer 在真实业务报表上的可诊断分页线与 atomic 行保护，以及右侧高保真纸张导出的跨页表头重复与整行保护效果。</desc>
+
+  <defs>
+    <linearGradient id="win-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f8faf8"/>
+    </linearGradient>
+    <filter id="win-shadow" x="-3%" y="-4%" width="106%" height="110%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="6" stdDeviation="12" flood-color="#14211a" flood-opacity="0.07"/>
+    </filter>
+  </defs>
+
+  <!-- Canvas Background -->
+  <rect width="1200" height="560" rx="16" fill="url(#win-bg)"/>
+  <rect width="1200" height="560" rx="16" fill="none" stroke="#dbe3dc" stroke-width="1.5"/>
+
+  <!-- Section Header -->
+  <g transform="translate(60, 38)">
+    <rect x="0" y="0" width="120" height="22" rx="4" fill="#e8f3ec"/>
+    <text x="60" y="15" text-anchor="middle" fill="#245e48" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" font-weight="700" letter-spacing="1.2">INSPECTABILITY</text>
+    <text x="132" y="16" fill="#6c7c70" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">安全断点测量 · atomic 块保护 · 长表格跨页自动续接表头</text>
+
+    <text x="0" y="48" fill="#18221b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif" font-size="22" font-weight="800">可诊断的分页过程：让每一次换页都有迹可循</text>
+    <text x="0" y="70" fill="#66776b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif" font-size="13">左侧：沙盒快照中标记内容边界与分页断点；右侧：同源布局输出的真实 A4 纸张预览（无截断、无漂移）</text>
+  </g>
+
+  <!-- Left: Inspection Sandbox Window -->
+  <g transform="translate(60, 126)">
+    <!-- Window Frame -->
+    <rect x="0" y="0" width="530" height="394" rx="10" fill="#ffffff" stroke="#cfdcd2" filter="url(#win-shadow)"/>
+    <!-- Titlebar -->
+    <path d="M0 10 Q0 0 10 0 L520 0 Q530 0 530 10 L530 36 L0 36 Z" fill="#edf3ee"/>
+    <circle cx="18" cy="18" r="5" fill="#f26c60"/>
+    <circle cx="34" cy="18" r="5" fill="#f4be4f"/>
+    <circle cx="50" cy="18" r="5" fill="#62c454"/>
+    <rect x="120" y="8" width="290" height="20" rx="4" fill="#ffffff" stroke="#d5dfd8"/>
+    <text x="265" y="22" text-anchor="middle" fill="#58685c" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="10">audit-report.html [Sandboxed Snapshot]</text>
+
+    <!-- Document Content in Sandbox -->
+    <g transform="translate(24, 52)">
+      <!-- Report Header -->
+      <text x="0" y="14" fill="#18221b" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="700">财务审计与信用分析报告 (Audit Report)</text>
+      <text x="0" y="28" fill="#7a8a7f" font-family="ui-monospace, monospace" font-size="10">REPORT ID: AUD-2026-8892 · FORMAT: A4 PORTRAIT</text>
+
+      <!-- KPI Summary Cards -->
+      <g transform="translate(0, 38)">
+        <rect x="0" y="0" width="150" height="38" rx="4" fill="#f8faf8" stroke="#e0e8e2"/>
+        <text x="10" y="15" fill="#7a8a7f" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10">审计资产总额</text>
+        <text x="10" y="30" fill="#245e48" font-family="ui-monospace, monospace" font-size="13" font-weight="700">¥ 128,450,000</text>
+
+        <rect x="164" y="0" width="150" height="38" rx="4" fill="#f8faf8" stroke="#e0e8e2"/>
+        <text x="174" y="15" fill="#7a8a7f" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10">综合财务健康度</text>
+        <text x="174" y="30" fill="#245e48" font-family="ui-monospace, monospace" font-size="13" font-weight="700">AAA (优级)</text>
+
+        <rect x="328" y="0" width="154" height="38" rx="4" fill="#f8faf8" stroke="#e0e8e2"/>
+        <text x="338" y="15" fill="#7a8a7f" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10">跨期合规率</text>
+        <text x="338" y="30" fill="#245e48" font-family="ui-monospace, monospace" font-size="13" font-weight="700">99.85%</text>
+      </g>
+
+      <!-- Table Section -->
+      <g transform="translate(0, 90)">
+        <text x="0" y="14" fill="#202b23" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600">一、资产与应收账款明细</text>
+
+        <!-- Table Outer -->
+        <rect x="0" y="22" width="482" height="152" rx="4" fill="#ffffff" stroke="#c8d6cc"/>
+        <!-- Table Header -->
+        <rect x="0" y="22" width="482" height="24" rx="4" fill="#e8f2eb"/>
+        <text x="12" y="38" fill="#1b4d3a" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10" font-weight="700">核算科目</text>
+        <text x="140" y="38" fill="#1b4d3a" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10" font-weight="700">年初余额 (CNY)</text>
+        <text x="260" y="38" fill="#1b4d3a" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10" font-weight="700">年末余额 (CNY)</text>
+        <text x="390" y="38" fill="#1b4d3a" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="10" font-weight="700">复核状态</text>
+
+        <!-- Row 1 -->
+        <rect x="0" y="46" width="482" height="24" fill="#ffffff"/>
+        <text x="12" y="62" fill="#333" font-family="sans-serif" font-size="10">流动资产 - 货币资金</text>
+        <text x="140" y="62" fill="#555" font-family="monospace" font-size="10">42,108,500.00</text>
+        <text x="260" y="62" fill="#555" font-family="monospace" font-size="10">58,340,120.00</text>
+        <text x="390" y="62" fill="#245e48" font-family="sans-serif" font-size="10">已确认</text>
+        <line x1="0" y1="70" x2="482" y2="70" stroke="#ebf0ec"/>
+
+        <!-- Row 2 -->
+        <rect x="0" y="70" width="482" height="24" fill="#fcfdfc"/>
+        <text x="12" y="86" fill="#333" font-family="sans-serif" font-size="10">应收票据及应收账款</text>
+        <text x="140" y="86" fill="#555" font-family="monospace" font-size="10">18,450,200.00</text>
+        <text x="260" y="86" fill="#555" font-family="monospace" font-size="10">21,900,000.00</text>
+        <text x="390" y="86" fill="#245e48" font-family="sans-serif" font-size="10">已确认</text>
+        <line x1="0" y1="94" x2="482" y2="94" stroke="#ebf0ec"/>
+
+        <!-- Row 3 with Atomic Row Protection Badge -->
+        <rect x="0" y="94" width="482" height="24" fill="#f4f9f6" stroke="#245e48" stroke-dasharray="2 2"/>
+        <text x="12" y="110" fill="#1b4d3a" font-family="sans-serif" font-size="10" font-weight="600">存货及在途物资</text>
+        <text x="140" y="110" fill="#555" font-family="monospace" font-size="10">12,600,000.00</text>
+        <text x="260" y="110" fill="#555" font-family="monospace" font-size="10">14,250,800.00</text>
+        <rect x="388" y="98" width="82" height="16" rx="3" fill="#245e48"/>
+        <text x="429" y="110" text-anchor="middle" fill="#ffffff" font-family="ui-monospace, monospace" font-size="9" font-weight="700">ATOMIC ROW</text>
+        <line x1="0" y1="118" x2="482" y2="118" stroke="#ebf0ec"/>
+
+        <!-- Row 4 -->
+        <rect x="0" y="118" width="482" height="24" fill="#ffffff"/>
+        <text x="12" y="134" fill="#333" font-family="sans-serif" font-size="10">固定资产 - 机器设备</text>
+        <text x="140" y="134" fill="#555" font-family="monospace" font-size="10">35,000,000.00</text>
+        <text x="260" y="134" fill="#555" font-family="monospace" font-size="10">33,959,080.00</text>
+        <text x="390" y="134" fill="#245e48" font-family="sans-serif" font-size="10">已确认</text>
+      </g>
+
+      <!-- Break Line Indicator Overlay (At bottom of table) -->
+      <g transform="translate(-24, 236)">
+        <line x1="0" y1="0" x2="530" y2="0" stroke="#245e48" stroke-width="2" stroke-dasharray="6 3"/>
+        <rect x="180" y="-12" width="170" height="24" rx="4" fill="#245e48"/>
+        <text x="265" y="4" text-anchor="middle" fill="#ffffff" font-family="ui-monospace, SFMono-Regular, monospace" font-size="11" font-weight="700">&#10003; 安全分页断点 (Page Break)</text>
+      </g>
+
+      <!-- Next Page Content Preview in Sandbox -->
+      <g transform="translate(0, 252)">
+        <rect x="0" y="0" width="482" height="38" rx="4" fill="#fcfdfc" stroke="#d5e2d8" stroke-dasharray="3 3"/>
+        <text x="12" y="22" fill="#58685c" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11">下一页自动续接：重复表头 &lt;thead&gt; + 独立签名印章块 (atomic)</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- Right: Generated PDF Paper Outputs -->
+  <g transform="translate(630, 126)">
+    <!-- Page 1 Output -->
+    <g transform="translate(0, 0)">
+      <rect x="0" y="0" width="224" height="394" rx="6" fill="#ffffff" stroke="#c2d5c8" stroke-width="1.2" filter="url(#win-shadow)"/>
+      <!-- Header -->
+      <text x="14" y="24" fill="#7a8c80" font-family="sans-serif" font-size="8">INTERNAL AUDIT REPORT · CONFIDENTIAL</text>
+      <line x1="14" y1="30" x2="210" y2="30" stroke="#ebf2ed"/>
+
+      <!-- Mock content -->
+      <rect x="14" y="40" width="110" height="7" rx="1.5" fill="#18221b"/>
+      <rect x="14" y="52" width="60" height="4" rx="1" fill="#7a8c80"/>
+
+      <rect x="14" y="64" width="196" height="24" rx="3" fill="#f8faf8" stroke="#e2ece5"/>
+      <rect x="20" y="70" width="45" height="4" fill="#245e48"/>
+      <rect x="20" y="78" width="60" height="5" fill="#18221b"/>
+
+      <!-- Table in Page 1 -->
+      <rect x="14" y="98" width="196" height="136" rx="2" fill="#ffffff" stroke="#d5dfd8"/>
+      <rect x="14" y="98" width="196" height="16" fill="#e8f2eb"/>
+      <rect x="20" y="104" width="40" height="4" fill="#1b4d3a"/>
+      <rect x="140" y="104" width="30" height="4" fill="#1b4d3a"/>
+
+      <rect x="20" y="122" width="60" height="3" fill="#66776b"/>
+      <rect x="140" y="122" width="35" height="3" fill="#66776b"/>
+      <line x1="14" y1="132" x2="210" y2="132" stroke="#eef2ef"/>
+
+      <rect x="20" y="140" width="55" height="3" fill="#66776b"/>
+      <rect x="140" y="140" width="40" height="3" fill="#66776b"/>
+      <line x1="14" y1="150" x2="210" y2="150" stroke="#eef2ef"/>
+
+      <rect x="20" y="158" width="65" height="3" fill="#66776b"/>
+      <rect x="140" y="158" width="38" height="3" fill="#66776b"/>
+      <line x1="14" y1="168" x2="210" y2="168" stroke="#eef2ef"/>
+
+      <rect x="20" y="176" width="58" height="3" fill="#66776b"/>
+      <rect x="140" y="176" width="36" height="3" fill="#66776b"/>
+      <line x1="14" y1="186" x2="210" y2="186" stroke="#eef2ef"/>
+
+      <rect x="20" y="194" width="62" height="3" fill="#66776b"/>
+      <rect x="140" y="194" width="42" height="3" fill="#66776b"/>
+
+      <!-- Safe Bottom Margin -->
+      <rect x="14" y="244" width="196" height="110" fill="#fafcfa" stroke="#eef3f0" stroke-dasharray="2 2"/>
+      <text x="112" y="300" text-anchor="middle" fill="#7a8c80" font-family="sans-serif" font-size="9">无截断，断点下移至第 2 页</text>
+
+      <!-- Footer & Page Number -->
+      <line x1="14" y1="364" x2="210" y2="364" stroke="#ebf2ed"/>
+      <text x="112" y="380" text-anchor="middle" fill="#7a8c80" font-family="ui-monospace, monospace" font-size="9">Page 1 / 2</text>
+    </g>
+
+    <!-- Page 2 Output -->
+    <g transform="translate(244, 0)">
+      <rect x="0" y="0" width="224" height="394" rx="6" fill="#ffffff" stroke="#c2d5c8" stroke-width="1.2" filter="url(#win-shadow)"/>
+      <!-- Header -->
+      <text x="14" y="24" fill="#7a8c80" font-family="sans-serif" font-size="8">INTERNAL AUDIT REPORT · CONFIDENTIAL</text>
+      <line x1="14" y1="30" x2="210" y2="30" stroke="#ebf2ed"/>
+
+      <!-- Auto Repeated Table Header (#281) -->
+      <g transform="translate(14, 40)">
+        <rect x="0" y="0" width="196" height="88" rx="2" fill="#ffffff" stroke="#d5dfd8"/>
+        <rect x="0" y="0" width="196" height="16" fill="#e8f2eb"/>
+        <rect x="6" y="6" width="40" height="4" fill="#1b4d3a"/>
+        <rect x="126" y="6" width="30" height="4" fill="#1b4d3a"/>
+        <text x="190" y="11" text-anchor="end" fill="#245e48" font-family="ui-monospace, monospace" font-size="7">[续表头]</text>
+
+        <rect x="6" y="24" width="62" height="3" fill="#66776b"/>
+        <rect x="126" y="24" width="42" height="3" fill="#66776b"/>
+        <line x1="0" y1="34" x2="196" y2="34" stroke="#eef2ef"/>
+
+        <rect x="6" y="42" width="58" height="3" fill="#66776b"/>
+        <rect x="126" y="42" width="36" height="3" fill="#66776b"/>
+        <line x1="0" y1="52" x2="196" y2="52" stroke="#eef2ef"/>
+
+        <rect x="6" y="60" width="50" height="3" fill="#66776b"/>
+        <rect x="126" y="60" width="30" height="3" fill="#66776b"/>
+      </g>
+
+      <!-- Signature & Stamp Block (Protected atomically) -->
+      <g transform="translate(14, 140)">
+        <rect x="0" y="0" width="196" height="96" rx="4" fill="#fbfdfb" stroke="#bad4c2"/>
+        <text x="10" y="18" fill="#18221b" font-family="sans-serif" font-size="9" font-weight="700">审计复核签字栏 (Atomic Block)</text>
+        <line x1="10" y1="56" x2="110" y2="56" stroke="#88998c"/>
+        <text x="10" y="68" fill="#7a8c80" font-family="sans-serif" font-size="8">首席审计师：张 * * (CPA)</text>
+
+        <!-- Mock Seal Stamp -->
+        <circle cx="156" cy="50" r="24" fill="none" stroke="#d44b4b" stroke-width="1.5" stroke-dasharray="3 1.5"/>
+        <circle cx="156" cy="50" r="20" fill="none" stroke="#d44b4b" stroke-width="0.8"/>
+        <text x="156" y="53" text-anchor="middle" fill="#d44b4b" font-family="sans-serif" font-size="7" font-weight="700">审计专用章</text>
+      </g>
+
+      <!-- Footer & Page Number -->
+      <line x1="14" y1="364" x2="210" y2="364" stroke="#ebf2ed"/>
+      <text x="112" y="380" text-anchor="middle" fill="#7a8c80" font-family="ui-monospace, monospace" font-size="9">Page 2 / 2</text>
+    </g>
+  </g>
+</svg>

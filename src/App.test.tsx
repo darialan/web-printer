@@ -79,11 +79,11 @@ test('首页展示产品介绍，并能进入工作台和返回首页', async ()
   window.history.replaceState(null, '', '/');
   const scrollTo = jest.spyOn(window, 'scrollTo').mockImplementation(() => {});
   render(<App />);
-  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('长网页，分好再导出。');
+  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('让网页保持原貌，让分页发生在正确的位置。');
   expect(screen.queryByRole('tab', { name: '长表格' })).not.toBeInTheDocument();
   expect(screen.getByRole('button', { name: '复制安装命令' })).toBeInTheDocument();
 
-  const entry = screen.getAllByRole('link', { name: '体验分页' })[0];
+  const entry = screen.getAllByRole('link', { name: '体验打印工作台' })[0];
   expect(entry).toHaveAttribute('href', '#/playground');
   window.history.pushState(null, '', '/#/playground');
   fireEvent(window, new HashChangeEvent('hashchange'));
@@ -94,7 +94,7 @@ test('首页展示产品介绍，并能进入工作台和返回首页', async ()
 
   window.history.pushState(null, '', '/#/');
   fireEvent(window, new HashChangeEvent('hashchange'));
-  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('长网页，分好再导出。');
+  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('让网页保持原貌，让分页发生在正确的位置。');
   scrollTo.mockRestore();
   window.history.replaceState(null, '', '/');
 });
@@ -127,9 +127,9 @@ test('首页语言切换覆盖文案与元信息，并保留语言偏好和示�
   fireEvent.click(screen.getByRole('tab', { name: 'Vue' }));
   fireEvent.click(screen.getByRole('button', { name: '切换到英文' }));
   expect(document.documentElement.lang).toBe('en');
-  expect(document.title).toBe('Web Printer · Paginated PDF & PNG export');
+  expect(document.title).toBe('Web Printer · Print what you see. Break where it makes sense.');
   expect(document.querySelector('meta[name="description"]')?.getAttribute('content') || '').not.toContain('框架');
-  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Web to PDF.Page by page.');
+  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Print what you see.Break where it makes sense.');
   expect(screen.getByRole('tab', { name: 'Vue' })).toHaveAttribute('aria-selected', 'true');
   expect(screen.getByRole('tabpanel')).toHaveTextContent('Export PDF');
   expect(screen.getByRole('button', { name: 'Copy install command' })).toBeInTheDocument();
@@ -139,6 +139,6 @@ test('首页语言切换覆盖文案与元信息，并保留语言偏好和示�
   render(<App />);
   expect(screen.getByRole('button', { name: 'Switch to Chinese' })).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Switch to Chinese' }));
-  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('长网页，分好再导出。');
+  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('让网页保持原貌，让分页发生在正确的位置。');
   expect(document.documentElement.lang).toBe('zh-CN');
 });

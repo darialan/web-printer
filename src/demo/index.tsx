@@ -9,7 +9,6 @@ export * from './ui';
 
 // Demo 业务层使用了 Ant Design，在 Demo 业务层统一配置注册 Ant Design 组件库选择器
 configurePrint({
-  ignore: ['.ant-pagination'],
 });
 
 export const DEMO_SCENES: PrintSceneItem[] = [

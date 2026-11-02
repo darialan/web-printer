@@ -1,7 +1,7 @@
 {
   "name": "@darialan/web-printer",
   "version": "2.0.0",
-  "description": "保留网页样式的 HTML 分页引擎，支持文字行、表格与图文内容保护，输出 PDF 和逐页 PNG。",
+  "description": "专注长文档与业务报表的内容感知分页引擎，保留打印视图布局，可靠导出 PDF 和逐页 PNG。",
   "author": "darialan",
   "license": "MIT",
   "repository": {
@@ -47,7 +47,9 @@
     "README.md",
     "LICENSE",
     "docs/migration-to-web-printer.md",
-    "docs/output-formats.md"
+    "docs/output-formats.md",
+    "docs/migration-to-v3.md",
+    "docs/benchmark.md"
   ],
   "dependencies": {
     "html2canvas": "^1.4.1",
@@ -85,7 +87,11 @@
     "test:lib": "react-scripts test --watchAll=false src/lib",
     "check": "npm run typecheck && npm run test:lib",
     "check:full": "npm run typecheck && npm run test:once -- --runInBand && npm run build:lib && npm run build && npm run test:e2e",
-    "setup:hooks": "git config core.hooksPath .githooks"
+    "setup:hooks": "git config core.hooksPath .githooks",
+    "benchmark:prepare": "node scripts/benchmark/prepare-baseline.mjs",
+    "benchmark": "node scripts/benchmark/run.mjs",
+    "benchmark:report": "node scripts/benchmark/report.mjs",
+    "benchmark:serve": "vite --host 127.0.0.1 --port 4175 --strictPort"
   },
   "devDependencies": {
     "@ant-design/icons": "^5.2.6",
@@ -102,6 +108,7 @@
     "@vercel/analytics": "^2.0.1",
     "antd": "^5.10.3",
     "caniuse-lite": "^1.0.30001820",
+    "html2pdf.js": "0.14.0",
     "pdfjs-dist": "^4.10.38",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

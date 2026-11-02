@@ -1,0 +1,10 @@
+import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+const ref=process.env.BENCHMARK_BASE_REF||'3c38b3e';
+const commit=execFileSync('git',['rev-parse',`${ref}^{commit}`],{encoding:'utf8'}).trim();
+const directory=path.resolve('.benchmark/baseline');fs.mkdirSync(directory,{recursive:true});
+const archive=execFileSync('git',['archive',commit,'src/lib'],{maxBuffer:20*1024*1024});
+execFileSync('tar',['-x','-C',directory],{input:archive});
+fs.writeFileSync('.benchmark/baseline.json',JSON.stringify({ref,commit},null,2));
+console.log(`Benchmark baseline: ${commit}`);

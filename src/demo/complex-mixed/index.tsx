@@ -36,7 +36,7 @@ export function ComplexMixedDemo() {
         <p className="article-meta"><span>计算光学</span><span>·</span><span>Accelerating Beam · 逆向设计</span></p>
         <p className="article-digest">{ARTICLE_DIGEST}</p>
       </header>
-      {status === 'error' && <div role="alert" data-print-ignore="true"><p>文章加载失败，请检查网络后重试。</p><Button onClick={() => setAttempt(value => value + 1)}>重试加载</Button></div>}
+      {status === 'error' && <div role="alert"><p>文章加载失败，请检查网络后重试。</p><Button onClick={() => setAttempt(value => value + 1)}>重试加载</Button></div>}
       {status === 'loading' && <p className="business-muted">正在加载文章内容…</p>}
       {/* bodyRef 的内容由上面的 effect 用 innerHTML 直接写入原文 HTML，
           这个容器不能再交给 React 管理子节点，否则 React 卸载时会找不到被替换掉的子节点而报错。 */}

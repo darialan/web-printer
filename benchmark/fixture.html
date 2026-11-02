@@ -1,0 +1,7 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Web Printer benchmark specimen</title><style>html,body{margin:0;padding:0;background:white}body{padding:16px}p{margin:16px 0}h2{font:600 24px/30px Arial;margin:12px 0 20px}blockquote{margin:20px 32px}button,input,textarea{font:14px/20px Arial}*{animation:none!important;transition:none!important}</style></head><body><main id="scene"></main><script type="module">
+import html2pdf from 'html2pdf.js';
+import * as current from '/src/lib/index.ts';
+import {mountScenario,settings,geometry,compareGeometry,scenarios} from './scenarios.mjs';
+window.bench={current,html2pdf,loadEngine:async name=>name==='baseline'?await import('/.benchmark/baseline/src/lib/index.ts'):current,mountScenario,settings,geometry,compareGeometry,scenarios};
+window.fixtureReady=true;
+</script></body></html>

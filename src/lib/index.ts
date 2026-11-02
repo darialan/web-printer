@@ -1,6 +1,6 @@
 /**
  * Web Printer (@darialan/web-printer)
- * High-performance, pixel-accurate client-side HTML pagination engine with PDF and PNG output.
+ * Content-aware client-side pagination of rendered HTML, with PDF and PNG output.
  */
 
 // Core types & definitions

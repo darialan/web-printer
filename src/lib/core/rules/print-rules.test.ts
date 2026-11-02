@@ -37,7 +37,7 @@ test('基础层技术无关且仅使用原生标准协议与标签', () => {
   });
 });
 
-test('classifies elements as atomic, ignore, or splittable and recognizes protocol selectors', () => {
+test('classifies elements as atomic or splittable and recognizes protocol selectors', () => {
   // 1. 不可分割 (Atomic)
   const elAtomicAttr = document.createElement('div');
   elAtomicAttr.setAttribute('data-print-atomic', 'true');
@@ -77,11 +77,11 @@ test('classifies elements as atomic, ignore, or splittable and recognizes protoc
   // 3. 忽略打印 (Ignore)
   const elIgnoreAttr = document.createElement('div');
   elIgnoreAttr.setAttribute('data-print-ignore', 'true');
-  expect(classifyPrintNode(elIgnoreAttr)).toEqual({ kind: 'ignore' });
+  expect(classifyPrintNode(elIgnoreAttr)).toEqual({ kind: 'splittable' });
 
   const elIgnoreClass = document.createElement('div');
-  elIgnoreClass.className = PRINT_CLASSES.IGNORE;
-  expect(classifyPrintNode(elIgnoreClass)).toEqual({ kind: 'ignore' });
+  elIgnoreClass.className = 'print-ignore';
+  expect(classifyPrintNode(elIgnoreClass)).toEqual({ kind: 'splittable' });
 });
 
 test('业务方通过 configurePrint 统一注册组件库类名', () => {
@@ -186,4 +186,12 @@ test('preset semantics classify flow elements as splittable, protect media and c
   // 文本节点的测量交给 DOM 遍历层的 Range 逻辑，不再由 classifyPrintNode 分类
   const text = document.createTextNode('A complete text line');
   expect(classifyPrintNode(text)).toBeUndefined();
+});
+
+test('removed ignore config and JavaScript custom rules fail closed without replacing global configuration', () => {
+  configurePrint({ atomic: ['.existing'] });
+  expect(() => configurePrint({ ignore: [] } as any)).toThrow('ignore 已移除');
+  expect(() => buildPrintRules({ customRules: [{ selector: '*', result: { kind: 'ignore' } }] } as any)).toThrow('ignore 元素分类已移除');
+  const el = document.createElement('div'); el.className = 'existing';
+  expect(classifyPrintNode(el)).toMatchObject({ kind: 'atomic' });
 });

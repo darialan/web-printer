@@ -56,7 +56,7 @@ beforeEach(() => {
     marker.setAttribute('data-print-debug', 'true');
     marker.textContent = '页面标记';
     root.appendChild(marker);
-    return { atomic: 1, splittable: 1, ignore: 0 };
+    return { atomic: 1, splittable: 1, excluded: 0 };
   });
   jest.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ width: 800 } as DOMRect);
   jest.spyOn(window, 'requestAnimationFrame').mockImplementation(callback => { callback(0); return 1; });

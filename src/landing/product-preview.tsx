@@ -107,10 +107,18 @@ function SourceSheet() {
         <rect y="21" width="62" height="8" rx="1.5" fill="#33423a" />
         <TextLines y={39} widths={[142, 134, 140, 126, 138, 96]} gap={6.4} />
         <DataTable y={88} w={142} rows={5} />
+        {/* Inspectable break line 1 */}
+        <line x1="-6" y1="148" x2="152" y2="148" stroke="#ef4444" strokeWidth="1" strokeDasharray="3 3" opacity=".8" />
+        <rect x="100" y="142" width="50" height="11" rx="2.5" fill="#fef2f2" stroke="#ef4444" strokeWidth=".7" />
+        <text x="125" y="150" textAnchor="middle" className="concept-mono" fontSize="5.5" fill="#dc2626" fontWeight="bold">✂ break 01</text>
         <MediaBlock y={174} w={142} h={54} />
         <rect y={242} width="58" height="6" rx="1.5" fill="#33423a" />
         <TextLines y={256} widths={[140, 132, 136, 108]} gap={6.4} />
-        <CodeBlock y={286} w={142} h={44} />
+        {/* Inspectable break line 2 */}
+        <line x1="-6" y1="278" x2="152" y2="278" stroke="#ef4444" strokeWidth="1" strokeDasharray="3 3" opacity=".8" />
+        <rect x="100" y="272" width="50" height="11" rx="2.5" fill="#fef2f2" stroke="#ef4444" strokeWidth=".7" />
+        <text x="125" y="280" textAnchor="middle" className="concept-mono" fontSize="5.5" fill="#dc2626" fontWeight="bold">✂ break 02</text>
+        <CodeBlock y={296} w={142} h={44} />
         <TextLines y={340} widths={[134, 118, 90]} gap={6.4} />
       </g>
       <rect x="0" y="360" width="176" height="80" fill="url(#wpFade)" />

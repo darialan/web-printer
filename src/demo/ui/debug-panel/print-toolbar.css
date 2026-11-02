@@ -176,7 +176,7 @@
   border: 1px dashed rgba(59, 130, 246, 0.4);
 }
 
-.legend-item-ignore {
+.legend-item-excluded {
   background: rgba(148, 163, 184, 0.12);
   color: #475569;
   border: 1px dashed rgba(148, 163, 184, 0.4);

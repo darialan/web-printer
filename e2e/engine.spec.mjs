@@ -5,20 +5,20 @@ test.beforeEach(async ({ page }) => {
   await page.waitForFunction(() => window.fixtureReady);
 });
 
-test('ignore selectors reflow real grid layout, preserve internal styles, and release snapshots', async ({ page }) => {
+test('visible controls retain grid slots, styles and current state, and snapshots are released', async ({ page }) => {
   const result = await page.evaluate(async () => {
     const { prepareLayout, DEFAULT_SETTINGS, serializePrintSnapshot, outputPDF } = window.engine;
     const root = document.getElementById('fixture');
     root.style.cssText = 'width:800px;margin:24px auto;padding:20px;box-sizing:border-box;font-size:17px';
-    root.innerHTML = '<section style="display:grid;grid-template-columns:1fr 1fr;gap:20px"><div class="omit"><img src="broken.png">filters</div><p style="margin:12px 0">retained text</p></section><div class="protected" style="height:150px;background:rgb(12,34,56)">keep together</div><textarea>old</textarea><canvas width="200" height="30"></canvas>';
+    root.innerHTML = '<section style="display:grid;grid-template-columns:1fr 1fr;gap:20px"><div class="controls">filters</div><p style="margin:12px 0">retained text</p></section><div class="protected" style="height:150px;background:rgb(12,34,56)">keep together</div><textarea>old</textarea><canvas width="200" height="30"></canvas>';
     root.querySelector('textarea').value = 'new note';
     const context = root.querySelector('canvas').getContext('2d');
     context.fillStyle = 'red'; context.fillRect(0, 0, 200, 30);
-    const ruleConfig = { ignore: ['.omit'], atomic: ['.protected'] };
+    const ruleConfig = { atomic: ['.protected'] };
     const layout = await prepareLayout({ element: root, settings: DEFAULT_SETTINGS, ruleConfig });
     const measured = { pages: layout.pages.length, sourceMargin: root.style.margin,
       cloneMargin: getComputedStyle(layout.root).marginLeft,
-      ignored: layout.root.querySelector('.omit') === null,
+      controls: layout.root.querySelector('.controls')?.textContent === 'filters',
       background: getComputedStyle(layout.root.querySelector('.protected')).backgroundColor,
       padding: getComputedStyle(layout.root).padding,
       note: serializePrintSnapshot(layout.root).includes('new note'),
@@ -27,7 +27,7 @@ test('ignore selectors reflow real grid layout, preserve internal styles, and re
     const pdf = await outputPDF({ element: root, settings: DEFAULT_SETTINGS, ruleConfig, filename: 'test', download: false });
     return { ...measured, exportedPages: pdf.pages, bytes: pdf.bytes, snapshots: document.querySelectorAll('[data-print-snapshot]').length };
   });
-  expect(result).toMatchObject({ cloneMargin: '0px', sourceMargin: '24px auto', ignored: true,
+  expect(result).toMatchObject({ cloneMargin: '0px', sourceMargin: '24px auto', controls: true,
     background: 'rgb(12, 34, 56)', padding: '20px', note: true, canvas: true, snapshots: 0 });
   expect(result.exportedPages).toBe(result.pages);
   expect(result.bytes).toBeGreaterThan(1000);

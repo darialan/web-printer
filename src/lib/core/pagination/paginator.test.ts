@@ -81,3 +81,20 @@ test('large text documents have bounded work and reject invalid limits', () => {
   expect(() => paginate(10, 5, [{ top: 1, bottom: Infinity }])).toThrow('无效');
   expect(paginate(10, 5, [{ top: -100, bottom: -20 }, { top: 20, bottom: 30 }])).toHaveLength(2);
 });
+
+test('touching ranges leave their common boundary legal while nested protections merge', () => {
+  expect(paginate(300, 100, [{top:0,bottom:100},{top:100,bottom:200},{top:200,bottom:300}])).toEqual([
+    {start:0,end:100},{start:100,end:200},{start:200,end:300},
+  ]);
+  expect(paginate(240, 100, [{top:80,bottom:140},{top:90,bottom:110}])[0].end).toBe(80);
+  expect(() => paginate(300, 100, [{top:0,bottom:90},{top:89,bottom:180}])).toThrow('重叠');
+});
+
+test('a padding-only final slice takes the last whole line instead of becoming blank', () => {
+  const ranges = [{top:20,bottom:40},{top:1000,bottom:1030}];
+  const pages = paginate(1056,1046,ranges);
+  expect(pages).toEqual([{start:0,end:1000},{start:1000,end:1056}]);
+  expect(() => validatePageBreaks(pages,ranges,0)).not.toThrow();
+  // An indivisible block at the origin offers no legal earlier break.
+  expect(paginate(1056,1046,[{top:0,bottom:1040}])).toEqual([{start:0,end:1046},{start:1046,end:1056}]);
+});
