@@ -9,11 +9,25 @@ import './App.css';
 const WorkbenchPage = lazy(() => import('./demo/workbench-page'));
 
 function App() {
-  const [hash, setHash] = useState(() => window.location.hash);
+  const [hash, setHash] = useState(() => {
+    const initial = window.location.hash;
+    if (initial === '#/benchmark' || initial.startsWith('#/benchmark')) {
+      return '#features';
+    }
+    return initial;
+  });
   useEffect(() => {
+    if (window.location.hash.startsWith('#/benchmark')) {
+      window.location.hash = '#features';
+    }
     const onHashChange = () => {
-      setHash(window.location.hash);
-      if (window.location.hash.startsWith('#/')) window.scrollTo(0, 0);
+      const nextHash = window.location.hash;
+      if (nextHash.startsWith('#/benchmark')) {
+        window.location.hash = '#features';
+        return;
+      }
+      setHash(nextHash);
+      if (nextHash.startsWith('#/')) window.scrollTo(0, 0);
     };
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);

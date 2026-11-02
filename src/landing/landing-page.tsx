@@ -185,7 +185,6 @@ export function LandingPage() {
         <a className="brand" href="#/" aria-label={t.home}><BrandMark /><BrandWordmark /></a>
         <div className="nav-links">
           <a href="#features">{t.features}</a>
-          <a href="#benchmark">{t.benchmark}</a>
           <a href="#playground">{t.examples}</a>
           <a href="#quickstart">{t.integration}</a>
           <a href="#faq">{t.faq}</a>
@@ -205,16 +204,10 @@ export function LandingPage() {
     <main id="main">
       <header className="hero landing-container">
         <div className="hero-copy">
-          <div className="hero-badge" data-ui>
-            <span className="hero-badge-dot"></span>
-            <span>{t.heroSubhead}</span>
-          </div>
-          <h1>{t.headline[0]}<br />{t.headline[1]}</h1>
-          <p className="hero-slogan" style={{ fontStyle: 'italic', color: 'var(--accent)', margin: '6px 0 16px', fontSize: '18px', fontWeight: 500 }}>{t.sloganEn}</p>
+          <h1><span className="hero-title-line">{t.headline[0]}</span><br /><span className="hero-title-line">{t.headline[1]}</span></h1>
           <p className="lede">{t.lede}</p>
           <div className="cta-row">
             <a href="#/playground" className="btn btn-dark">{t.try}<Icon name="arrow" size={18} /></a>
-            <a href="#benchmark" className="btn btn-outline">{t.benchmark}<Icon name="arrow" size={18} /></a>
             <a href="#quickstart" className="text-link">{t.viewCode}<Icon name="code" size={18} /></a>
           </div>
           <InstallCommand locale={locale} hero />
@@ -271,48 +264,48 @@ export function LandingPage() {
             </div>
           </article>)}
         </div>
-      </section>
 
-      <section id="benchmark" className="benchmark-section landing-container">
-        <div className="section-heading">
-          <div>
-            <h2 data-reveal>{t.benchmarkTitle}</h2>
-            <p className="section-description" data-reveal>{t.benchmarkBody}</p>
+        <div className="features-benchmark" data-reveal>
+          <div className="features-benchmark-header">
+            <div>
+              <h3>{t.benchmarkTitle}</h3>
+              <p className="section-description">{t.benchmarkBody}</p>
+            </div>
+            <a href={BENCHMARK_DOC} target="_blank" rel="noreferrer" className="text-link">
+              {t.benchmarkViewReport}<Icon name="external" size={16} />
+            </a>
           </div>
-          <a href={BENCHMARK_DOC} target="_blank" rel="noreferrer" className="text-link" data-reveal>
-            {t.benchmarkViewReport}<Icon name="external" size={16} />
-          </a>
-        </div>
-        <div className="benchmark-table-wrap" data-reveal>
-          <table className="benchmark-table">
-            <thead>
-              <tr>
-                {t.benchmarkHeaders.map((header, idx) => (
-                  <th key={idx}>{header}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {t.benchmarkRows.map((row, idx) => (
-                <tr key={idx}>
-                  <td><strong>{row.scene}</strong></td>
-                  <td><span className="benchmark-legacy">{row.legacy}</span></td>
-                  <td><span className="benchmark-wp">{row.wp}</span></td>
-                  <td>
-                    <span className={`benchmark-tag ${row.pass ? 'pass' : 'fail'}`}>
-                      {row.gain}
-                    </span>
-                  </td>
+          <div className="benchmark-table-wrap">
+            <table className="benchmark-table">
+              <thead>
+                <tr>
+                  {t.benchmarkHeaders.map((header, idx) => (
+                    <th key={idx}>{header}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="benchmark-footer" data-reveal>
-          <p className="benchmark-note">{t.benchmarkNote}</p>
-          <a href={BENCHMARK_DOC} target="_blank" rel="noreferrer" className="text-link">
-            {t.benchmarkViewReport}<Icon name="external" size={15} />
-          </a>
+              </thead>
+              <tbody>
+                {t.benchmarkRows.map((row, idx) => (
+                  <tr key={idx}>
+                    <td><strong>{row.scene}</strong></td>
+                    <td><span className="benchmark-legacy">{row.legacy}</span></td>
+                    <td><span className="benchmark-wp">{row.wp}</span></td>
+                    <td>
+                      <span className={`benchmark-tag ${row.pass ? 'pass' : 'fail'}`}>
+                        {row.gain}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="benchmark-footer">
+            <p className="benchmark-note">{t.benchmarkNote}</p>
+            <a href={BENCHMARK_DOC} target="_blank" rel="noreferrer" className="text-link">
+              {t.benchmarkViewReport}<Icon name="external" size={15} />
+            </a>
+          </div>
         </div>
       </section>
 
