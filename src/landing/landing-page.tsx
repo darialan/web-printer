@@ -8,6 +8,7 @@ import './landing-page.css';
 
 const REPO = 'https://github.com/darialan/web-printer';
 const DOCS = `${REPO}#readme`;
+const BENCHMARK_DOC = `${REPO}/blob/master/docs/benchmark.md`;
 const INSTALL_CMD = 'npm install @darialan/web-printer';
 const technologies = ['JavaScript', 'TypeScript', 'React', 'Vue', 'HTML'] as const;
 const scenes = [
@@ -23,59 +24,86 @@ const codeExamples = {
 const element = document.getElementById('report');
 if (!element) throw new Error('Report not found');
 
+// 自动测量内容几何断点，逐页生成 PDF 并触发下载
 await outputDocument({
   element,
   filename: 'report',
-  format: 'pdf',
+  format: 'pdf', // 或 'png'（逐页 PNG 打包为 ZIP）
   settings: {
     paper: 'a4',
     marginTopMm: 12,
     marginBottomMm: 12,
   },
+  onProgress: (completed, total) => {
+    console.log(\`导出进度: \${completed}/\${total} 页\`);
+  },
 });`,
-  React: `import { useRef, useState } from 'react';
-import { outputDocument } from '@darialan/web-printer';
+  React: `import { useRef } from 'react';
+import { useWebPrinter } from '@darialan/web-printer/react';
 
-export function Report() {
+export function InvoiceReport() {
   const reportRef = useRef<HTMLDivElement>(null);
-  const [busy, setBusy] = useState(false);
+  const { exportDocument, isExporting, progress, cancel } = useWebPrinter();
 
-  async function handleExport() {
-    if (!reportRef.current || busy) return;
-    setBusy(true);
-    try {
-      await outputDocument({
-        element: reportRef.current,
-        filename: 'report',
-        format: 'png',
-      });
-    } finally { setBusy(false); }
-  }
+  return (
+    <div>
+      <div className="toolbar">
+        <button
+          disabled={isExporting}
+          onClick={() =>
+            exportDocument({
+              element: reportRef.current,
+              filename: 'report',
+              format: 'png', // 逐页高清 PNG 并自动打包为 ZIP
+            })
+          }
+        >
+          {isExporting ? \`导出中 (\${progress.completed}/\${progress.total})\` : '>Export<'}
+        </button>
+        {isExporting && <button onClick={cancel}>取消</button>}
+      </div>
 
-  return <>
-    <button disabled={busy} onClick={handleExport}>Export</button>
-    <div ref={reportRef}>{/* Your content */}</div>
-  </>;
+      <div ref={reportRef}>
+        {/* 声明式标记：印章或签名栏整块换页，不被分页截断 */}
+        <div data-print-atomic="true">
+          <h3>企业盖章与签名区</h3>
+        </div>
+        <div>Your content</div>
+      </div>
+    </div>
+  );
 }`,
   Vue: `<script setup>
 import { ref } from 'vue';
 import { outputDocument } from '@darialan/web-printer';
 
 const reportRef = ref(null);
+const isExporting = ref(false);
 
 async function exportReport() {
-  if (!reportRef.value) return;
-  await outputDocument({
-    element: reportRef.value,
-    filename: 'report',
-    format: 'pdf',
-  });
+  if (!reportRef.value || isExporting.value) return;
+  isExporting.value = true;
+  try {
+    await outputDocument({
+      element: reportRef.value,
+      filename: 'report',
+      format: 'pdf',
+    });
+  } finally {
+    isExporting.value = false;
+  }
 }
 </script>
 
 <template>
-  <button @click="exportReport">Export PDF</button>
-  <div ref="reportRef"><!-- Your content --></div>
+  <button :disabled="isExporting" @click="exportReport">Export PDF</button>
+  <div ref="reportRef">
+    <!-- 带有原子保护标记的签名或卡片 -->
+    <div data-print-atomic="true">
+      <p>不可分割业务卡片</p>
+    </div>
+    <div>Your content</div>
+  </div>
 </template>`,
 };
 
@@ -143,7 +171,12 @@ export function LandingPage() {
     document.getElementById(`code-tab-${next}`)?.focus();
   }
 
-  const currentCode = locale === 'zh' ? codeExamples[codeTab].replaceAll('Your content', '你的内容').replaceAll('Export PDF', '导出 PDF').replaceAll('>Export<', '>导出<') : codeExamples[codeTab];
+  const currentCode = locale === 'zh'
+    ? codeExamples[codeTab]
+        .replaceAll('Your content', '你的业务内容')
+        .replaceAll('Export PDF', '导出 PDF')
+        .replaceAll('>Export<', '>导出<')
+    : codeExamples[codeTab];
 
   return <div className="landing-page site-page" ref={pageRef} data-locale={locale}>
     <a className="skip-link" href="#main">{t.skip}</a>
@@ -152,6 +185,7 @@ export function LandingPage() {
         <a className="brand" href="#/" aria-label={t.home}><BrandMark /><BrandWordmark /></a>
         <div className="nav-links">
           <a href="#features">{t.features}</a>
+          <a href="#benchmark">{t.benchmark}</a>
           <a href="#playground">{t.examples}</a>
           <a href="#quickstart">{t.integration}</a>
           <a href="#faq">{t.faq}</a>
@@ -171,11 +205,16 @@ export function LandingPage() {
     <main id="main">
       <header className="hero landing-container">
         <div className="hero-copy">
+          <div className="hero-badge" data-ui>
+            <span className="hero-badge-dot"></span>
+            <span>{t.heroSubhead}</span>
+          </div>
           <h1>{t.headline[0]}<br />{t.headline[1]}</h1>
           <p className="hero-slogan" style={{ fontStyle: 'italic', color: 'var(--accent)', margin: '6px 0 16px', fontSize: '18px', fontWeight: 500 }}>{t.sloganEn}</p>
           <p className="lede">{t.lede}</p>
           <div className="cta-row">
             <a href="#/playground" className="btn btn-dark">{t.try}<Icon name="arrow" size={18} /></a>
+            <a href="#benchmark" className="btn btn-outline">{t.benchmark}<Icon name="arrow" size={18} /></a>
             <a href="#quickstart" className="text-link">{t.viewCode}<Icon name="code" size={18} /></a>
           </div>
           <InstallCommand locale={locale} hero />
@@ -204,33 +243,76 @@ export function LandingPage() {
             <h3>{rule.title}</h3><p>{rule.body}</p>
             <div className={`rule-specimen specimen-${index}`} aria-hidden="true">
               {index === 0 ? (
-                <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr', gap: 6, width: 140, height: 68, border: '1.5px dashed var(--accent)', padding: 6, borderRadius: 6, background: 'var(--card)' }}>
-                  <div style={{ background: 'var(--stage-ink)', opacity: 0.15, borderRadius: 3 }}></div>
-                  <div style={{ display: 'grid', gap: 4 }}>
-                    <div style={{ height: 14, background: 'var(--stage-ink)', opacity: 0.25, borderRadius: 2 }}></div>
-                    <div style={{ height: 28, background: 'var(--stage-ink)', opacity: 0.15, borderRadius: 2 }}></div>
+                <div className="specimen-box specimen-snapshot">
+                  <div className="specimen-sidebar"></div>
+                  <div className="specimen-grid">
+                    <div className="specimen-bar primary"></div>
+                    <div className="specimen-bar secondary"></div>
                   </div>
                 </div>
               ) : index === 1 ? (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr', alignContent: 'center', gap: 6, padding: '12px 20px', background: 'var(--card)', width: 140, borderRadius: 6 }}>
+                <div className="specimen-box specimen-textlines">
                   <span className="text-line" /><span className="text-line" /><span className="text-line short" />
-                  <span style={{ display: 'block', height: 6, borderBottom: '1.5px dashed var(--accent)', margin: '2px 0' }} />
+                  <span className="specimen-breakline" />
                   <span className="text-line" /><span className="text-line" />
                 </div>
               ) : index === 2 ? (
-                <div style={{ display: 'flex', gap: 8 }}>
-                  {['P.1', 'P.2', 'P.3'].map(p => (
-                    <span key={p} style={{ display: 'grid', placeItems: 'center', width: 40, height: 54, background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 4, fontSize: 12, fontWeight: 600, color: 'var(--accent)' }}>{p}</span>
+                <div className="specimen-box specimen-pages">
+                  {['P.1', 'P.2', 'P.3', 'P.50'].map(p => (
+                    <span key={p} className="specimen-page-card">{p}</span>
                   ))}
                 </div>
               ) : (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', border: '1.5px dashed #ef4444', borderRadius: 6, background: 'rgba(239, 68, 68, 0.08)', color: '#ef4444', fontSize: 13, fontWeight: 600 }}>
-                  <span style={{ fontSize: 16 }}>✂️</span>
+                <div className="specimen-badge-pill">
+                  <span className="specimen-icon">✂️</span>
                   <span>safe break: 1047px</span>
                 </div>
               )}
             </div>
           </article>)}
+        </div>
+      </section>
+
+      <section id="benchmark" className="benchmark-section landing-container">
+        <div className="section-heading">
+          <div>
+            <h2 data-reveal>{t.benchmarkTitle}</h2>
+            <p className="section-description" data-reveal>{t.benchmarkBody}</p>
+          </div>
+          <a href={BENCHMARK_DOC} target="_blank" rel="noreferrer" className="text-link" data-reveal>
+            {t.benchmarkViewReport}<Icon name="external" size={16} />
+          </a>
+        </div>
+        <div className="benchmark-table-wrap" data-reveal>
+          <table className="benchmark-table">
+            <thead>
+              <tr>
+                {t.benchmarkHeaders.map((header, idx) => (
+                  <th key={idx}>{header}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {t.benchmarkRows.map((row, idx) => (
+                <tr key={idx}>
+                  <td><strong>{row.scene}</strong></td>
+                  <td><span className="benchmark-legacy">{row.legacy}</span></td>
+                  <td><span className="benchmark-wp">{row.wp}</span></td>
+                  <td>
+                    <span className={`benchmark-tag ${row.pass ? 'pass' : 'fail'}`}>
+                      {row.gain}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="benchmark-footer" data-reveal>
+          <p className="benchmark-note">{t.benchmarkNote}</p>
+          <a href={BENCHMARK_DOC} target="_blank" rel="noreferrer" className="text-link">
+            {t.benchmarkViewReport}<Icon name="external" size={15} />
+          </a>
         </div>
       </section>
 
