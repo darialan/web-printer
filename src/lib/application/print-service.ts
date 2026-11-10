@@ -18,7 +18,8 @@ export interface DocumentExportOptions extends ExportOptions {
 }
 
 export interface PreviewPaginationOptions extends Omit<LayoutOptions, 'element'> {
-  contentElement: HTMLElement | null;
+  element?: HTMLElement | null;
+  contentElement?: HTMLElement | null;
 }
 
 export interface PrintInspectionResult {
@@ -99,18 +100,22 @@ export function outputPDF(options: ExportOptions) {
 }
 
 /** Run full snapshot measurement and pagination validation, returning structured diagnostics. */
-export async function inspectPrintLayout({
-  contentElement,
-  ...options
-}: PreviewPaginationOptions): Promise<PrintInspectionResult> {
+export async function inspectPrintLayout(
+  input: PreviewPaginationOptions | HTMLElement
+): Promise<PrintInspectionResult> {
+  const options: PreviewPaginationOptions =
+    input && typeof input === 'object' && (input as Node).nodeType === 1
+      ? { element: input as HTMLElement }
+      : (input as PreviewPaginationOptions);
+  const { contentElement, element, ...rest } = options;
   const started = performance.now();
-  const target = resolvePrintElement(contentElement);
-  const layout = await prepareLayout({ element: target, ...options });
+  const target = resolvePrintElement(element ?? contentElement ?? null);
+  const layout = await prepareLayout({ element: target, ...rest });
   try {
     const pageBreaks = layout.pages.map(page => page.start);
-    const rules = options.rules || (options.ruleConfig ? buildPrintRules(options.ruleConfig) : getPrintRules());
-    const splittableSelector = options.splittableSelector
-      || (options.ruleConfig ? buildSplittableSelector(options.ruleConfig) : getSplittableSelector());
+    const rules = rest.rules || (rest.ruleConfig ? buildPrintRules(rest.ruleConfig) : getPrintRules());
+    const splittableSelector = rest.splittableSelector
+      || (rest.ruleConfig ? buildSplittableSelector(rest.ruleConfig) : getSplittableSelector());
     // Validate in the same frozen coordinate space used by capture.
     const snapshotMeasurement = measureDocument(layout.root, layout.capacity, rules, splittableSelector);
     validatePageBreaks(layout.pages, snapshotMeasurement.ranges);
@@ -137,7 +142,7 @@ export async function inspectPrintLayout({
 }
 
 /** Uses the exact snapshot measurement and page planner used by PDF export, with coordinates relative to the prepared print snapshot. */
-export async function calculatePagesArray(options: PreviewPaginationOptions) {
+export async function calculatePagesArray(options: PreviewPaginationOptions | HTMLElement) {
   const result = await inspectPrintLayout(options);
   return result.pageBreaks;
 }

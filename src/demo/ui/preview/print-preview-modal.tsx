@@ -1,122 +1,17 @@
 import {
-  calculateGeometry,
-  prepareLayout,
-  serializePrintSnapshot,
+  buildHtmlPreviewData,
+  calculateHtmlPaperGeometry,
+  HtmlPaperGeometry,
+  HtmlPreviewData,
   namespacePreviewHtml,
-  PageNumberConfig,
   PageSlice,
-  PrintSettings,
-  resolvePaper,
 } from '../../../lib';
 import { Button, Modal, Spin, Tag } from 'antd';
 import React, { useId, useMemo, useState } from 'react';
 import './print-preview-modal.css';
 
-export interface HtmlPaperGeometry {
-  paperWidthPx: number;
-  paperHeightPx: number;
-  marginTopPx: number;
-  marginRightPx: number;
-  marginBottomPx: number;
-  marginLeftPx: number;
-  printableWidthPx: number;
-  printableHeightPx: number;
-  headerHeightPx: number;
-  footerHeightPx: number;
-  sourceWidth: number;
-  scale: number;
-  bodyTopPx?: number;
-  footerTopPx?: number;
-  pageNumberYPx?: number;
-  pageNumber?: PageNumberConfig;
-}
-
-export interface HtmlPreviewData {
-  paperLabel: string;
-  pages: PageSlice[];
-  geometry: HtmlPaperGeometry;
-  sourceHtml: string;
-  headerHtml?: string;
-  footerHtml?: string;
-  totalMs: number;
-  filename: string;
-}
-
-/**
- * 极速计算虚拟纸张规范（基于物理标准与 96 DPI CSS 像素精确转换）
- */
-export function calculateHtmlPaperGeometry(
-  settings: PrintSettings,
-  sourceElement: HTMLElement,
-  headerElement?: HTMLElement | null,
-  footerElement?: HTMLElement | null
-): HtmlPaperGeometry {
-  const paper = resolvePaper(settings);
-  const PX_PER_MM = 96 / 25.4;
-
-  const paperWidthPx = paper.widthMm * PX_PER_MM;
-  const paperHeightPx = paper.heightMm * PX_PER_MM;
-  const marginTopPx = settings.marginTopMm * PX_PER_MM;
-  const marginRightPx = settings.marginRightMm * PX_PER_MM;
-  const marginBottomPx = settings.marginBottomMm * PX_PER_MM;
-  const marginLeftPx = settings.marginLeftMm * PX_PER_MM;
-
-  const printableWidthPx = Math.max(10, paperWidthPx - marginLeftPx - marginRightPx);
-  const printableHeightPx = Math.max(10, paperHeightPx - marginTopPx - marginBottomPx);
-
-  const sourceWidth = sourceElement.getBoundingClientRect().width;
-  const scale = printableWidthPx / sourceWidth;
-
-  const layout = calculateGeometry(paper, sourceWidth, headerElement?.getBoundingClientRect().height,
-    footerElement?.getBoundingClientRect().height, settings.pageNumber ?? true);
-  const headerHeightPx = layout.headerHeight * 4 / 3;
-  const footerHeightPx = layout.footerHeight * 4 / 3;
-
-  return {
-    paperWidthPx,
-    paperHeightPx,
-    marginTopPx,
-    marginRightPx,
-    marginBottomPx,
-    marginLeftPx,
-    printableWidthPx,
-    printableHeightPx,
-    headerHeightPx,
-    footerHeightPx,
-    sourceWidth,
-    scale,
-    bodyTopPx: layout.bodyTop * 4 / 3,
-    footerTopPx: layout.footerY * 4 / 3,
-    pageNumberYPx: layout.pageNumberY * 4 / 3,
-    pageNumber: settings.pageNumber,
-  };
-}
-
-/** Preview and export use the same frozen DOM, resource readiness, planner and paper geometry. */
-export async function buildHtmlPreviewData({ contentElement, header, footer, settings, filename, signal }: {
-  contentElement: HTMLElement;
-  header?: HTMLElement | null;
-  footer?: HTMLElement | null;
-  settings: PrintSettings;
-  filename: string;
-  signal?: AbortSignal;
-}): Promise<HtmlPreviewData> {
-  const started = performance.now();
-  const layout = await prepareLayout({ element: contentElement, header, footer, settings, signal });
-  try {
-    const geometry = calculateHtmlPaperGeometry(settings, layout.root, layout.header, layout.footer);
-    const paper = resolvePaper(settings);
-    const factor = settings.unit === 'px' ? 96 / 25.4 : 1;
-    const paperLabel = `${settings.paper === 'custom' ? '自定义' : settings.paper.toUpperCase()} · ${Number((paper.widthMm * factor).toFixed(1))} × ${Number((paper.heightMm * factor).toFixed(1))} ${settings.unit || 'mm'}`;
-    return {
-      paperLabel, pages: layout.pages, geometry,
-      sourceHtml: serializePrintSnapshot(layout.root),
-      headerHtml: layout.header ? serializePrintSnapshot(layout.header) : undefined,
-      footerHtml: layout.footer ? serializePrintSnapshot(layout.footer) : undefined,
-      totalMs: performance.now() - started, filename,
-    };
-  } finally { layout.cleanup(); }
-}
+export { buildHtmlPreviewData, calculateHtmlPaperGeometry };
+export type { HtmlPaperGeometry, HtmlPreviewData };
 
 export interface PrintPreviewModalProps {
   open: boolean;

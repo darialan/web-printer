@@ -21,15 +21,35 @@ export * from './adapters/pdf';
 export * from './application/cancellation';
 export * from './application/print-pipeline';
 export * from './application/print-service';
+export * from './application/preview-data';
 
-// Visual inspector overlay (Vanilla DOM)
+// Visual inspector & preview overlays (Vanilla DOM)
 export {
   visualizePageBreaks,
+  togglePageBreaks,
   clearPageBreaks,
+  hasPageBreaks,
 } from './overlay/page-break-overlay';
-export type { ObservabilityStats } from './overlay/page-break-overlay';
+export type {
+  ObservabilityStats,
+  VisualizePageBreaksOptions,
+  PageBreakVisualizationResult,
+  TogglePageBreaksResult,
+} from './overlay/page-break-overlay';
+
+export {
+  previewPrint,
+  closePrintPreview,
+  createPrintPreviewView,
+} from './overlay/print-preview-overlay';
+export type {
+  PreviewPrintOptions,
+  PrintPreviewController,
+  PrintPreviewView,
+  PrintPreviewViewOptions,
+} from './overlay/print-preview-overlay';
 
 // Format-specific output writers and their extension contract.
 export * from './output';
 
-export * from "./application/print-session";
+export * from './application/print-session';

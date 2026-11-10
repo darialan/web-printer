@@ -1,6 +1,14 @@
 import { registerDebugLayer } from '../adapters/dom/debug-layers';
 import { walkPrintTree } from '../adapters/dom/traversal';
-import { classifyPrintNode, getSplittableSelector, getPrintRules } from '../core/rules/print-rules';
+import { LayoutOptions, resolvePrintElement } from '../application/print-pipeline';
+import { inspectPrintLayout, PrintInspectionResult } from '../application/print-service';
+import {
+  buildPrintRules,
+  buildSplittableSelector,
+  classifyPrintNode,
+  getPrintRules,
+  getSplittableSelector,
+} from '../core/rules/print-rules';
 import { PrintRule } from '../core/types';
 
 export interface ObservabilityStats {
@@ -9,11 +17,46 @@ export interface ObservabilityStats {
   excluded: number;
 }
 
+export interface VisualizePageBreaksOptions extends Omit<LayoutOptions, 'element'> {
+  element?: HTMLElement | null;
+  contentElement?: HTMLElement | null;
+}
+
+export interface PageBreakVisualizationResult extends Omit<PrintInspectionResult, 'stats'> {
+  stats: ObservabilityStats;
+  clear: () => void;
+}
+
+export type TogglePageBreaksResult =
+  | ({ active: true } & PageBreakVisualizationResult)
+  | { active: false };
+
 const layers = new Map<HTMLElement, { host: HTMLElement; dispose: () => void }>();
 
+/** 清理 / 查询类 API 不应抛错：iframe 尚未就绪等情况下直接按传入元素处理。 */
+function resolveQuietly(element: HTMLElement): HTMLElement {
+  try {
+    return resolvePrintElement(element) || element;
+  } catch {
+    return element;
+  }
+}
+
+export function hasPageBreaks(element: HTMLElement | null | undefined): boolean {
+  if (!element) return false;
+  const layer = layers.get(resolveQuietly(element));
+  return Boolean(layer && layer.host.isConnected);
+}
+
 export function clearPageBreaks(owner?: Document | HTMLElement) {
+  const resolvedOwner =
+    owner && owner.nodeType === 1 ? resolveQuietly(owner as HTMLElement) : owner;
   for (const [root, layer] of Array.from(layers)) {
-    if (!owner || owner === root || (owner.nodeType === 9 && root.ownerDocument === owner)) {
+    if (
+      !resolvedOwner ||
+      resolvedOwner === root ||
+      (resolvedOwner.nodeType === 9 && root.ownerDocument === resolvedOwner)
+    ) {
       layer.dispose();
       layers.delete(root);
     }
@@ -23,9 +66,104 @@ export function clearPageBreaks(owner?: Document | HTMLElement) {
 export function visualizePageBreaks(
   pages: number[],
   element: HTMLElement,
+  rules?: readonly PrintRule[],
+  excludedElements?: readonly Element[],
+  /** 用于让 splittable 行的可视化判断与 measureDocument 保持一致；未提供时按"整体保护"展示。 */
+  capacity?: number,
+  splittableSelector?: string
+): ObservabilityStats;
+export function visualizePageBreaks(
+  options: VisualizePageBreaksOptions | HTMLElement
+): Promise<PageBreakVisualizationResult>;
+export function visualizePageBreaks(
+  pagesOrOptions: number[] | VisualizePageBreaksOptions | HTMLElement,
+  element?: HTMLElement,
   rules: readonly PrintRule[] = getPrintRules(),
   excludedElements: readonly Element[] = [],
-  /** 用于让 splittable 行的可视化判断与 measureDocument 保持一致；未提供时按"整体保护"展示。 */
+  capacity?: number,
+  splittableSelector: string = getSplittableSelector()
+): ObservabilityStats | Promise<PageBreakVisualizationResult> {
+  if (Array.isArray(pagesOrOptions)) {
+    return renderPageBreaksOverlay(
+      pagesOrOptions,
+      element!,
+      rules,
+      excludedElements,
+      capacity,
+      splittableSelector
+    );
+  }
+  return visualizePageBreaksAsync(pagesOrOptions);
+}
+
+async function visualizePageBreaksAsync(
+  input: VisualizePageBreaksOptions | HTMLElement
+): Promise<PageBreakVisualizationResult> {
+  const options: VisualizePageBreaksOptions =
+    input && typeof input === 'object' && (input as Node).nodeType === 1
+      ? { element: input as HTMLElement }
+      : (input as VisualizePageBreaksOptions);
+  const target = resolvePrintElement(options.element ?? options.contentElement ?? null);
+  if (!target) {
+    throw new Error('找不到有效的打印区域');
+  }
+  const inspection = await inspectPrintLayout({ ...options, element: target });
+  const resolvedRules =
+    options.rules || (options.ruleConfig ? buildPrintRules(options.ruleConfig) : getPrintRules());
+  const resolvedSplittable =
+    options.splittableSelector ||
+    (options.ruleConfig ? buildSplittableSelector(options.ruleConfig) : getSplittableSelector());
+  const stats = renderPageBreaksOverlay(
+    inspection.pageBreaks,
+    target,
+    resolvedRules,
+    options.excludedElements || [],
+    inspection.capacity,
+    resolvedSplittable
+  );
+  return {
+    ...inspection,
+    stats,
+    clear: () => clearPageBreaks(target),
+  };
+}
+
+/** 正在测量中的切换任务：重复调用复用同一次测量，避免状态判断错乱。 */
+const pendingToggles = new Map<HTMLElement, Promise<TogglePageBreaksResult>>();
+
+/**
+ * 一键切换分页线显示状态：若当前已显示则清除并返回 `{ active: false }`，否则测量并绘制分页线。
+ * 测量期间的重复调用会直接复用进行中的那一次结果。
+ */
+export async function togglePageBreaks(
+  input: VisualizePageBreaksOptions | HTMLElement
+): Promise<TogglePageBreaksResult> {
+  const options: VisualizePageBreaksOptions =
+    input && typeof input === 'object' && (input as Node).nodeType === 1
+      ? { element: input as HTMLElement }
+      : (input as VisualizePageBreaksOptions);
+  const target = resolvePrintElement(options.element ?? options.contentElement ?? null);
+  if (!target) {
+    throw new Error('找不到有效的打印区域');
+  }
+  const pending = pendingToggles.get(target);
+  if (pending) return pending;
+  if (hasPageBreaks(target)) {
+    clearPageBreaks(target);
+    return { active: false };
+  }
+  const task: Promise<TogglePageBreaksResult> = visualizePageBreaksAsync({ ...options, element: target })
+    .then(result => ({ active: true as const, ...result }))
+    .finally(() => pendingToggles.delete(target));
+  pendingToggles.set(target, task);
+  return task;
+}
+
+function renderPageBreaksOverlay(
+  pages: number[],
+  element: HTMLElement,
+  rules: readonly PrintRule[] = getPrintRules(),
+  excludedElements: readonly Element[] = [],
   capacity?: number,
   splittableSelector: string = getSplittableSelector()
 ): ObservabilityStats {
@@ -43,13 +181,69 @@ export function visualizePageBreaks(
   const host = doc.createElement('div');
   host.setAttribute('data-print-debug', 'true');
   host.setAttribute('aria-hidden', 'true');
-  host.style.cssText = 'position:absolute;pointer-events:none;z-index:2147483643;';
+  host.style.cssText = 'position:fixed;pointer-events:none;z-index:2147483643;margin:0;padding:0;border:none;';
   const update = () => {
     const box = element.getBoundingClientRect();
-    host.style.left = `${box.left + (win?.scrollX || 0)}px`;
-    host.style.top = `${box.top + (win?.scrollY || 0)}px`;
+    host.style.left = `${box.left}px`;
+    host.style.top = `${box.top}px`;
     host.style.width = `${box.width}px`;
     host.style.height = `${box.height}px`;
+
+    // 当打印区域位于内部滚动容器（如工作台 .workbench-main）或吸顶工具栏下方时，
+    // 按可见视口动态裁剪调试层，防止滚动时标记框穿出容器压在吸顶导航栏与工具条之上。
+    let visTop = -Infinity;
+    let visLeft = -Infinity;
+    let visRight = Infinity;
+    let visBottom = Infinity;
+    let curr: HTMLElement | null = element.parentElement;
+    while (curr && curr !== doc.body && curr !== doc.documentElement) {
+      const style = win?.getComputedStyle ? win.getComputedStyle(curr) : null;
+      if (style) {
+        const overflowY = style.overflowY || style.overflow;
+        const overflowX = style.overflowX || style.overflow;
+        const clipsY = /^(auto|scroll|hidden|clip)$/.test(overflowY);
+        const clipsX = /^(auto|scroll|hidden|clip)$/.test(overflowX);
+        if (clipsY || clipsX) {
+          const rect = curr.getBoundingClientRect();
+          if (clipsY) {
+            visTop = Math.max(visTop, rect.top);
+            visBottom = Math.min(visBottom, rect.bottom);
+            const stickies = curr.querySelectorAll<HTMLElement>(
+              '.ant-tabs-nav, header, nav, [data-print-sticky]'
+            );
+            for (let i = 0; i < stickies.length; i++) {
+              const sticky = stickies[i];
+              if (!sticky.contains(element) && win?.getComputedStyle(sticky).position === 'sticky') {
+                const sRect = sticky.getBoundingClientRect();
+                if (sRect.height > 0 && sRect.top <= rect.top + 8 && sRect.bottom > visTop) {
+                  visTop = sRect.bottom;
+                }
+              }
+            }
+          }
+          if (clipsX) {
+            visLeft = Math.max(visLeft, rect.left);
+            visRight = Math.min(visRight, rect.right);
+          }
+        }
+      }
+      curr = curr.parentElement;
+    }
+
+    if (
+      Number.isFinite(visTop) ||
+      Number.isFinite(visBottom) ||
+      Number.isFinite(visLeft) ||
+      Number.isFinite(visRight)
+    ) {
+      const clipTop = Number.isFinite(visTop) ? Math.max(-12, visTop - box.top) : -12;
+      const clipRight = Number.isFinite(visRight) ? Math.max(0, box.right - visRight) : 0;
+      const clipBottom = Number.isFinite(visBottom) ? Math.max(0, box.bottom - visBottom) : 0;
+      const clipLeft = Number.isFinite(visLeft) ? Math.max(0, visLeft - box.left) : 0;
+      host.style.clipPath = `inset(${clipTop}px ${clipRight}px ${clipBottom}px ${clipLeft}px)`;
+    } else {
+      host.style.clipPath = '';
+    }
   };
   update();
   // A body print root also excludes the internal layer by ownership, not by a
@@ -278,8 +472,8 @@ function createOverlay(opts: {
   badge.textContent = opts.badgeText;
   const isRight = opts.badgePosition === 'right';
 
-  // 贴元素内部角隅放置（默认右上），确保在元素自身内部高亮，绝不跨界遮挡上方元素文字
-  const badgeTop = '2px';
+  // 骑在元素上边框线外侧角隅（top: -9px），避免压住段落首行右侧或左侧的正文文字
+  const badgeTop = '-9px';
   const badgeSide = isRight ? 'right: 4px;' : 'left: 4px;';
 
   badge.style.cssText = `

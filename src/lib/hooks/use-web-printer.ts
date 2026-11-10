@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { DocumentExportOptions, ExportOptions, inspectPrintLayout, outputDocument, PreviewPaginationOptions, PrintInspectionResult } from '../application/print-service';
-import { clearPageBreaks, visualizePageBreaks } from '../overlay/page-break-overlay';
+import { clearPageBreaks, togglePageBreaks, visualizePageBreaks, VisualizePageBreaksOptions } from '../overlay/page-break-overlay';
+import { closePrintPreview, previewPrint, PreviewPrintOptions } from '../overlay/print-preview-overlay';
 
 export interface UseWebPrinterProgress { completed: number; total: number; percent: number }
 export interface UseWebPrinterState {
@@ -53,8 +54,9 @@ export function useWebPrinter() {
     try {
       const result = await inspectPrintLayout({ ...params, signal: controller.signal });
       if (current()) {
-        if (showOverlay && params.contentElement) {
-          visualizePageBreaks(result.pageBreaks, params.contentElement, undefined, undefined, result.capacity);
+        const target = params.element ?? params.contentElement;
+        if (showOverlay && target) {
+          visualizePageBreaks(result.pageBreaks, target, undefined, undefined, result.capacity);
         }
         setState(prev => ({ ...prev, inspection: result }));
       }
@@ -67,5 +69,19 @@ export function useWebPrinter() {
     }
   }, [cancel]);
   const clearVisualOverlay = useCallback(() => { clearPageBreaks(); setState(prev => ({ ...prev, inspection: null })); }, []);
-  return { ...state, isPrinting: state.isExporting, exportDocument, exportPDF, inspectLayout, clearVisualOverlay, cancel };
+  const openPreview = useCallback((params: PreviewPrintOptions | HTMLElement) => previewPrint(params), []);
+  const closePreview = useCallback((container?: HTMLElement) => closePrintPreview(container), []);
+  const toggleVisualOverlay = useCallback((params: VisualizePageBreaksOptions | HTMLElement) => togglePageBreaks(params), []);
+  return {
+    ...state,
+    isPrinting: state.isExporting,
+    exportDocument,
+    exportPDF,
+    inspectLayout,
+    clearVisualOverlay,
+    toggleVisualOverlay,
+    openPreview,
+    closePreview,
+    cancel,
+  };
 }

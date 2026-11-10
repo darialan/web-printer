@@ -1,8 +1,15 @@
-import { prepareLayout, serializePrintSnapshot, DEFAULT_SETTINGS } from '../../../lib';
+import { DEFAULT_SETTINGS } from '../../../lib';
+import { serializePrintSnapshot } from '../../../lib/adapters/dom/snapshot';
+import { prepareLayout } from '../../../lib/application/print-pipeline';
 import { buildHtmlPreviewData } from './print-preview-modal';
 
-jest.mock('../../../lib', () => ({
-  ...jest.requireActual('../../../lib'), prepareLayout: jest.fn(), serializePrintSnapshot: jest.fn(),
+jest.mock('../../../lib/application/print-pipeline', () => ({
+  ...jest.requireActual('../../../lib/application/print-pipeline'),
+  prepareLayout: jest.fn(),
+}));
+jest.mock('../../../lib/adapters/dom/snapshot', () => ({
+  ...jest.requireActual('../../../lib/adapters/dom/snapshot'),
+  serializePrintSnapshot: jest.fn(),
 }));
 
 test('preview serializes the measured snapshot and declarative header/footer, then releases it', async () => {

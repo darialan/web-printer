@@ -1,4 +1,5 @@
-import { clearPageBreaks, visualizePageBreaks } from './page-break-overlay';
+import { clearPageBreaks, hasPageBreaks, togglePageBreaks, visualizePageBreaks } from './page-break-overlay';
+import * as printService from '../application/print-service';
 
 beforeEach(() => {
   clearPageBreaks();
@@ -140,4 +141,96 @@ test('debug visualization does not mutate business DOM or remove business debug 
   clearPageBreaks(root);
   expect(root.outerHTML).toBe(before);
   root.remove();
+});
+
+test('visualizePageBreaks({ element }) 支持一行异步测量并绘制分页线，togglePageBreaks 支持一键开关', async () => {
+  const container = document.createElement('div');
+  container.innerHTML = '<h2 style="width:200px;height:40px;">标题</h2><p style="width:200px;height:60px;">正文内容</p>';
+  document.body.appendChild(container);
+  container.getBoundingClientRect = () => ({ left: 0, top: 0, width: 800, height: 600 } as DOMRect);
+  Array.from(container.querySelectorAll('*')).forEach((node, i) => {
+    (node as HTMLElement).getBoundingClientRect = () => ({ left: 0, top: i * 50, width: 200, height: 40 } as DOMRect);
+  });
+
+  const spy = jest.spyOn(printService, 'inspectPrintLayout').mockResolvedValue({
+    pageBreaks: [0, 240],
+    pages: [
+      { start: 0, end: 240 },
+      { start: 240, end: 480 },
+    ],
+    totalHeight: 480,
+    capacity: 300,
+    protectedRanges: [],
+    timing: { measurementMs: 2, paginationMs: 1, totalMs: 3 },
+  });
+
+  const res = await visualizePageBreaks({ element: container });
+  expect(spy).toHaveBeenCalledWith(expect.objectContaining({ element: container }));
+  expect(res.pages).toHaveLength(2);
+  expect(res.stats.atomic).toBe(1);
+  expect(res.stats.splittable).toBe(1);
+  expect(hasPageBreaks(container)).toBe(true);
+
+  // 调用 togglePageBreaks 时检测到已开启，应自动清除并返回 active: false
+  const toggledOff = await togglePageBreaks({ element: container });
+  expect(toggledOff.active).toBe(false);
+  expect(hasPageBreaks(container)).toBe(false);
+  expect(document.querySelectorAll('[data-print-debug="true"]')).toHaveLength(0);
+
+  // 再次调用 togglePageBreaks 应重新绘制并返回 active: true
+  const toggledOn = await togglePageBreaks(container);
+  expect(toggledOn.active).toBe(true);
+  expect(hasPageBreaks(container)).toBe(true);
+
+  if (toggledOn.active) {
+    toggledOn.clear();
+  }
+  expect(hasPageBreaks(container)).toBe(false);
+
+  spy.mockRestore();
+  container.remove();
+});
+
+test('togglePageBreaks 在测量期间重复调用时复用同一次测量，状态保持一致', async () => {
+  const container = document.createElement('div');
+  container.innerHTML = '<p style="width:200px;height:40px;">正文</p>';
+  document.body.appendChild(container);
+  container.getBoundingClientRect = () => ({ left: 0, top: 0, width: 800, height: 600 } as DOMRect);
+  container.querySelectorAll('*').forEach(node => {
+    (node as HTMLElement).getBoundingClientRect = () => ({ left: 0, top: 0, width: 200, height: 40 } as DOMRect);
+  });
+  let release!: () => void;
+  const spy = jest.spyOn(printService, 'inspectPrintLayout').mockImplementation(
+    () => new Promise(resolve => {
+      release = () => resolve({
+        pageBreaks: [0], pages: [{ start: 0, end: 100 }], totalHeight: 100, capacity: 300,
+        protectedRanges: [], timing: { measurementMs: 1, paginationMs: 1, totalMs: 2 },
+      });
+    })
+  );
+
+  const first = togglePageBreaks({ element: container });
+  const second = togglePageBreaks({ element: container });
+  release();
+  const [a, b] = await Promise.all([first, second]);
+
+  expect(spy).toHaveBeenCalledTimes(1);
+  expect(a.active).toBe(true);
+  expect(b.active).toBe(true);
+  expect(hasPageBreaks(container)).toBe(true);
+  expect((await togglePageBreaks({ element: container })).active).toBe(false);
+
+  spy.mockRestore();
+  container.remove();
+});
+
+test('hasPageBreaks / clearPageBreaks 遇到尚未就绪的 iframe 不抛错', () => {
+  const iframe = document.createElement('iframe');
+  iframe.setAttribute('src', 'about:blank');
+  document.body.appendChild(iframe);
+
+  expect(() => hasPageBreaks(iframe)).not.toThrow();
+  expect(hasPageBreaks(iframe)).toBe(false);
+  expect(() => clearPageBreaks(iframe)).not.toThrow();
+  iframe.remove();
 });

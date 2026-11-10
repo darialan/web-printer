@@ -1,9 +1,9 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
-import { MiniPrintPreview } from './mini-print-preview';
+import { MiniPreviewBoundary, MiniPrintPreview } from './mini-print-preview';
 import { HtmlPreviewData } from './print-preview-modal';
 
-describe('MiniPrintPreview 组件 (带全屏与折叠控制)', () => {
+describe('MiniPrintPreview 组件（库预览视图的 React 封装）', () => {
   const mockData: HtmlPreviewData = {
     paperLabel: 'A4',
     pages: [
@@ -29,6 +29,7 @@ describe('MiniPrintPreview 组件 (带全屏与折叠控制)', () => {
     totalMs: 15,
     filename: 'test',
   };
+  const zoomLabel = () => screen.getByTitle('点击重置为 100% 适应大小');
 
   test('正确渲染小窗头部、页数标记与迷你切片纸张', () => {
     const onClose = jest.fn();
@@ -41,40 +42,100 @@ describe('MiniPrintPreview 组件 (带全屏与折叠控制)', () => {
     expect(screen.getByText('1 / 2')).toBeInTheDocument();
     expect(screen.getByText('2 / 2')).toBeInTheDocument();
 
-    // 关闭按钮
     fireEvent.click(screen.getByTitle('关闭预览小窗'));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  test('没有 onClose 时不显示关闭按钮', () => {
+    render(<MiniPrintPreview data={mockData} />);
+    expect(screen.getByTitle('关闭预览小窗')).not.toBeVisible();
+  });
+
+  test('卸载时移除小窗，且不触发 onClose', () => {
+    const onClose = jest.fn();
+    const { unmount } = render(<MiniPrintPreview data={mockData} onClose={onClose} />);
+    expect(screen.getByText('📄 纸张预览')).toBeInTheDocument();
+    unmount();
+    expect(screen.queryByText('📄 纸张预览')).not.toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   test('支持最小化与展开切换', () => {
     render(<MiniPrintPreview data={mockData} />);
 
-    const toggleBtn = screen.getByTitle('折叠小窗');
-    fireEvent.click(toggleBtn);
+    fireEvent.click(screen.getByTitle('折叠小窗'));
+    expect(screen.getByText(/P\.1 \/ 2 · A4/)).not.toBeVisible();
 
-    // 折叠后 body 隐藏
-    expect(screen.queryByText(/P\.1 \/ 2 · A4/)).not.toBeInTheDocument();
-
-    // 再次点击展开
     fireEvent.click(screen.getByTitle('展开小窗'));
-    expect(screen.getByText(/P\.1 \/ 2 · A4/)).toBeInTheDocument();
+    expect(screen.getByText(/P\.1 \/ 2 · A4/)).toBeVisible();
   });
 
   test('支持一键切换全屏预览与退出全屏 (包含 Escape 快捷键)', () => {
-    const { container } = render(<MiniPrintPreview data={mockData} />);
+    render(<MiniPrintPreview data={mockData} />);
 
-    // 点击全屏按钮 (FullscreenOutlined)
-    const fullscreenBtn = screen.getByTitle('全屏预览');
-    fireEvent.click(fullscreenBtn);
+    fireEvent.click(screen.getByTitle('全屏预览'));
+    expect(document.querySelector('.wp-preview-widget--fullscreen')).toBeInTheDocument();
+    expect(screen.getByTitle('退出全屏 (Esc)')).toBeInTheDocument();
 
-    // 检查进入全屏状态 class 与切换为退出全屏按钮 (FullscreenExitOutlined)
-    expect(container.querySelector('.is-fullscreen')).toBeInTheDocument();
-    const exitBtn = screen.getByTitle('退出全屏 (Esc)');
-    expect(exitBtn).toBeInTheDocument();
-
-    // 触发 Escape 退出全屏
     fireEvent.keyDown(window, { key: 'Escape' });
-    expect(container.querySelector('.is-fullscreen')).not.toBeInTheDocument();
+    expect(document.querySelector('.wp-preview-widget--fullscreen')).not.toBeInTheDocument();
     expect(screen.getByTitle('全屏预览')).toBeInTheDocument();
+  });
+
+  test('缩放控制：放大、缩小、点击百分比重置，并有上下限', () => {
+    render(<MiniPrintPreview data={mockData} />);
+
+    expect(zoomLabel()).toHaveTextContent('100%');
+    fireEvent.click(screen.getByTitle('放大预览'));
+    expect(zoomLabel()).toHaveTextContent('110%');
+    fireEvent.click(screen.getByTitle('缩小预览'));
+    fireEvent.click(screen.getByTitle('缩小预览'));
+    expect(zoomLabel()).toHaveTextContent('90%');
+
+    fireEvent.click(zoomLabel());
+    expect(zoomLabel()).toHaveTextContent('100%');
+
+    for (let i = 0; i < 30; i++) fireEvent.click(screen.getByTitle('缩小预览'));
+    expect(zoomLabel()).toHaveTextContent('40%');
+    expect(screen.getByTitle('缩小预览')).toBeDisabled();
+    for (let i = 0; i < 30; i++) fireEvent.click(screen.getByTitle('放大预览'));
+    expect(zoomLabel()).toHaveTextContent('250%');
+    expect(screen.getByTitle('放大预览')).toBeDisabled();
+  });
+
+  test('缩放会改变纸张尺寸', () => {
+    render(<MiniPrintPreview data={mockData} />);
+    const sheet = () => document.querySelector<HTMLElement>('.wp-preview-page-sheet')!;
+    const before = parseFloat(sheet().style.width);
+    fireEvent.click(screen.getByTitle('放大预览'));
+    expect(parseFloat(sheet().style.width)).toBeGreaterThan(before);
+  });
+
+  test('加载与失败状态，失败时可重试', () => {
+    const onRetry = jest.fn();
+    const { rerender } = render(<MiniPrintPreview data={null} loading />);
+    expect(screen.getByText('计算分页中…')).toBeInTheDocument();
+
+    rerender(<MiniPrintPreview data={null} error="快照失败" onRetry={onRetry} />);
+    expect(screen.getByText('纸张预览失败：快照失败')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '重试预览' }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+
+    rerender(<MiniPrintPreview data={mockData} onRetry={onRetry} />);
+    expect(screen.getByText(/P\.1 \/ 2 · A4/)).toBeInTheDocument();
+  });
+
+  test('数据异常只交给错误边界，小窗里显示失败并可重试', () => {
+    const log = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const onRetry = jest.fn();
+    render(
+      <MiniPreviewBoundary onRetry={onRetry} onClose={jest.fn()}>
+        <MiniPrintPreview data={{ ...mockData, geometry: undefined as any }} />
+      </MiniPreviewBoundary>
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent('纸张预览失败');
+    act(() => { fireEvent.click(screen.getByRole('button', { name: '重试预览' })); });
+    expect(onRetry).toHaveBeenCalledTimes(1);
+    log.mockRestore();
   });
 });

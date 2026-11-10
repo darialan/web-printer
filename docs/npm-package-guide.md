@@ -62,7 +62,7 @@
 ### 构建命令
 
 ```bash
-# 1. 运行单次全量自动化测试（当前 19 个测试套件、110 个用例，覆盖几何、规则、测量、分页、快照、截图及导出服务）
+# 1. 运行单次全量自动化测试（当前 20 个测试套件、127 个用例，覆盖几何、规则、测量、分页、快照、截图、预览及导出服务）
 npm run test:once
 
 # 2. 构建生产环境 NPM 产物（生成 ESM、CJS 及全套 TypeScript 类型定义）
@@ -131,35 +131,47 @@ pnpm add @darialan/web-printer
 
 ### 3.1 原生 JS / Vanilla 极简调用
 
-适用于任何不使用前端框架的传统多页系统或微前端容器：
+适用于任何不使用前端框架的传统多页系统、微前端容器或在线沙箱（如 JSFiddle / CodePen），直接复制即可运行：
 
 ```html
-<button id="btn-export">导出 PDF</button>
+<button id="btn-preview">预览各页</button>
+<button id="btn-line">显示/隐藏分页线</button>
+<button id="btn-pdf">导出 PDF</button>
 
-<div id="print-content" style="background: #fff; padding: 20px;">
-  <h1>采购验收单</h1>
-  <table border="1" style="width: 100%; border-collapse: collapse;">
-    <thead>
-      <tr><th>物料名称</th><th>规格</th><th>数量</th><th>单价</th></tr>
-    </thead>
-    <tbody>
-      <!-- tr 会被引擎自动作为不可分割原子单元保护 -->
-      <tr><td>服务器主板</td><td>Epyc 9654</td><td>10</td><td>¥18,000</td></tr>
-      <tr><td>企业级固态硬盘</td><td>3.84TB NVMe</td><td>50</td><td>¥2,400</td></tr>
-    </tbody>
-  </table>
-</div>
+<!-- 待打印内容区 -->
+<div id="print-area"></div>
 
 <script type="module">
-  import { outputPDF } from '@darialan/web-printer';
+  import {
+    outputPDF,
+    previewPrint,
+    togglePageBreaks,
+  } from 'https://esm.sh/@darialan/web-printer@3.1.0';
 
-  document.getElementById('btn-export').addEventListener('click', async () => {
-    const el = document.getElementById('print-content');
-    await outputPDF({
-      element: el,
-      filename: '采购验收单.pdf',
-    });
-  });
+  const el = document.getElementById('print-area');
+
+  // 生成测试内容（data-print-atomic="true" 标记整块不可分割）
+  el.innerHTML = Array.from({ length: 6 }, (_, i) => `
+    <div data-print-atomic="true" style="height: 360px; border: 1px solid #ccc; margin: 12px 0; padding: 16px;">
+      <h3>Test Block #${i + 1}</h3>
+      <p>Hello there from @darialan/web-printer</p>
+    </div>
+  `).join('');
+
+  // 1. 预览各页（右下角暗色悬浮窗，支持折叠、全屏、缩放与懒加载）
+  document.getElementById('btn-preview').onclick = () => {
+    previewPrint({ element: el });
+  };
+
+  // 2. 显示/隐藏分页切割线
+  document.getElementById('btn-line').onclick = () => {
+    togglePageBreaks({ element: el });
+  };
+
+  // 3. 导出 PDF
+  document.getElementById('btn-pdf').onclick = () => {
+    outputPDF({ element: el, filename: 'test.pdf' });
+  };
 </script>
 ```
 
@@ -358,11 +370,15 @@ await outputPDF({
 
 | API | 用途 |
 | --- | --- |
+| `previewPrint({ element, ...options })` / `closePrintPreview()` | 一行弹出逐页虚拟纸张预览小窗（默认右下角暗色浮窗，支持折叠、全屏、缩放与滚动懒加载；也可传 `container` 嵌入指定节点），无需手写样式。预览被关闭、取代或中止时返回 `null`，加载失败会抛出；`closePrintPreview()` 同样会触发 `onClose` |
+| `createPrintPreviewView(options)` | 只负责渲染的预览视图，由调用方通过 `showLoading()` / `showError()` / `showData(data)` 提供数据，适合在 React / Vue 中自己管理加载与取消；`close()` 触发 `onClose`，`dispose()` 静默销毁 |
+| `visualizePageBreaks({ element, ...options })` | 一行测量并在独立调试层绘制分页切割线与 `atomic`/`splittable` 标记（也兼容传入 `(pages, element)` 旧签名） |
+| `togglePageBreaks({ element, ...options })` / `clearPageBreaks()` | 一键切换或移除页面上的分页线调试层，不改业务根节点；测量期间的重复调用会复用同一次测量 |
+| `buildHtmlPreviewData(options)` / `calculateHtmlPaperGeometry(...)` | 生成虚拟纸张预览的结构化几何与序列化快照数据，供自定义预览 UI 使用 |
 | `createPrintSession(options)` | 冻结一次布局，供 `thumbnail(index)`、`exportDocument()` 复用；用完调用 `dispose()` |
-| `inspectPrintLayout({ contentElement, ...options })` | 只测量与检查，返回页数、断点、受保护区间和耗时 |
+| `inspectPrintLayout({ element, ...options })` | 只测量与检查，返回页数、断点、受保护区间和耗时（兼容 `contentElement`） |
 | `calculatePagesArray(options)` | 只返回分页断点数组 |
 | `configurePrint(config)` / `resetPrintRules()` | 全局注册或重置规则选择器 |
-| `visualizePageBreaks(pages, element)` / `clearPageBreaks()` | 在独立调试层绘制或清理分页线，不改业务根节点 |
 
 ---
 
@@ -616,18 +632,26 @@ await outputPDF({
 - "切断线具体位于哪两个像素之间？"
 - "这个元素有没有被正确识别为 atomic 还是可以继续递归？"
 
-引擎提供了框架无关的可视化诊断工具：
+引擎提供了框架无关的一站式纸张预览与可视化诊断工具：
 
 ```ts
-import { inspectPrintLayout, visualizePageBreaks, clearPageBreaks } from '@darialan/web-printer';
+import {
+  previewPrint,
+  visualizePageBreaks,
+  togglePageBreaks,
+  clearPageBreaks,
+} from '@darialan/web-printer';
 
 const element = document.getElementById('my-report');
 
-// 1. 进行快速布局推演
-const diagnostics = await inspectPrintLayout({ contentElement: element });
+// 1. 一行弹出右下角逐页纸张预览窗（支持折叠、全屏、缩放控制、IntersectionObserver 懒加载）
+await previewPrint({ element });
 
-// 2. 在真实页面上直接渲染高亮标记图层（capacity 可选：传入后 splittable 行的展示与实际分页结果完全一致）
-visualizePageBreaks(diagnostics.pageBreaks, element, undefined, undefined, diagnostics.capacity);
+// 2. 一行测量并在原页面渲染高亮标记图层与分页切割线（无需手动串联 inspectPrintLayout）
+const diagnostics = await visualizePageBreaks({ element });
+
+// 或者直接绑定到按钮点击事件，一键切换分页线的显示/隐藏：
+// await togglePageBreaks({ element });
 
 // 控制台打印出详细统计
 console.table({
@@ -639,7 +663,7 @@ console.table({
 });
 
 // 3. 调试完毕后一键移除标记图层
-// clearPageBreaks();
+// clearPageBreaks(element);
 ```
 
 ### 视觉图层标识含义：

@@ -7,6 +7,8 @@ import { PrintWorkbench } from './print-workbench';
 jest.mock('@darialan/web-printer', () => ({
   DEFAULT_SETTINGS: { pageNumber: { enabled: true } },
   namespacePreviewHtml: (html: string) => html,
+  createPrintPreviewView: (...args: any[]) =>
+    (jest.requireActual('../../lib/overlay/print-preview-overlay') as any).createPrintPreviewView(...args),
   resolvePrintElement: (el: HTMLElement) => el,
   resolvePaper: () => ({}),
   calculateGeometry: () => ({ capacity: 500 }),

@@ -55,27 +55,72 @@ Web Printer 的区别在于：**先计算内容的安全分页位置，再逐页
 
 ## 快速开始
 
+### 1. NPM 安装
+
 ```bash
 npm install @darialan/web-printer
 ```
 
 ```ts
-import { outputDocument } from '@darialan/web-printer';
+import { outputDocument, previewPrint, togglePageBreaks } from '@darialan/web-printer';
 
-await outputDocument({
-  element: document.getElementById('report')!,
-  filename: 'report',
-  format: 'pdf', // 或 'png'：逐页图片并打包为 ZIP
-});
+const el = document.getElementById('print-area')!;
+
+// 导出 PDF 或逐页 PNG (ZIP)
+await outputDocument({ element: el, filename: 'report.pdf', format: 'pdf' });
+
+// 弹出右下角纸张预览窗（支持折叠、全屏、缩放与滚动懒加载）
+await previewPrint({ element: el });
+
+// 显示/隐藏原页面上的分页切割线与调试标记
+await togglePageBreaks({ element: el });
 ```
 
-需要让图表、签名区等内容整块换页时，可以加上标记：
+### 2. 完整可运行示例（可直接复制到 HTML 或 JSFiddle 运行）
 
 ```html
-<div data-print-atomic="true">签名区 / 图表</div>
+<button id="btn-preview">预览各页</button>
+<button id="btn-line">显示/隐藏分页线</button>
+<button id="btn-pdf">导出 PDF</button>
+
+<!-- 待打印内容区 -->
+<div id="print-area"></div>
+
+<script type="module">
+  import {
+    outputPDF,
+    previewPrint,
+    togglePageBreaks,
+  } from 'https://esm.sh/@darialan/web-printer@3.1.0';
+
+  const el = document.getElementById('print-area');
+
+  // 生成测试内容（data-print-atomic="true" 保护卡片不被跨页截断）
+  el.innerHTML = Array.from({ length: 6 }, (_, i) => `
+    <div data-print-atomic="true" style="height: 360px; border: 1px solid #ccc; margin: 12px 0; padding: 16px;">
+      <h3>Test Block #${i + 1}</h3>
+      <p>Hello there from @darialan/web-printer</p>
+    </div>
+  `).join('');
+
+  // 1. 预览各页（自动弹出右下角暗色悬浮窗，支持折叠、全屏、缩放与滚动懒加载）
+  document.getElementById('btn-preview').onclick = () => {
+    previewPrint({ element: el });
+  };
+
+  // 2. 显示/隐藏分页切割线
+  document.getElementById('btn-line').onclick = () => {
+    togglePageBreaks({ element: el });
+  };
+
+  // 3. 导出 PDF
+  document.getElementById('btn-pdf').onclick = () => {
+    outputPDF({ element: el, filename: 'test.pdf' });
+  };
+</script>
 ```
 
-还支持 React、分页预览、导出进度与取消操作，详见[接入指南](https://github.com/darialan/web-printer/blob/master/docs/npm-package-guide.md)。
+还支持 React Hook（`@darialan/web-printer/react`）、自定义页眉页脚、导出进度与取消操作，详见[接入指南](https://github.com/darialan/web-printer/blob/master/docs/npm-package-guide.md)。
 
 ## 使用说明
 

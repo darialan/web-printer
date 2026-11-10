@@ -1,13 +1,19 @@
 import { useWebPrinter, usePdfPrint } from './react';
 import {
+  buildHtmlPreviewData,
   calculateGeometry,
+  calculateHtmlPaperGeometry,
   clearPageBreaks,
+  closePrintPreview,
   DEFAULT_SETTINGS,
+  hasPageBreaks,
   outputPDF,
   paginate,
+  previewPrint,
   PRINT_ATTRIBUTES,
   PRINT_CLASSES,
   resolvePaper,
+  togglePageBreaks,
   visualizePageBreaks,
 } from './index';
 
@@ -26,10 +32,16 @@ describe('Web Printer Lib Entry Point', () => {
     expect(PRINT_CLASSES.ATOMIC).toBe('print-atomic');
   });
 
-  it('exports application export service and visual debugger', () => {
+  it('exports application export service, preview overlay and visual debugger', () => {
     expect(typeof outputPDF).toBe('function');
+    expect(typeof previewPrint).toBe('function');
+    expect(typeof closePrintPreview).toBe('function');
+    expect(typeof buildHtmlPreviewData).toBe('function');
+    expect(typeof calculateHtmlPaperGeometry).toBe('function');
     expect(typeof visualizePageBreaks).toBe('function');
+    expect(typeof togglePageBreaks).toBe('function');
     expect(typeof clearPageBreaks).toBe('function');
+    expect(typeof hasPageBreaks).toBe('function');
     expect(typeof useWebPrinter).toBe('function');
     expect(usePdfPrint).toBe(useWebPrinter);
   });
