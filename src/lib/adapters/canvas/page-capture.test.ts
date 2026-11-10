@@ -90,3 +90,46 @@ test('a never-settling renderer times out and releases its pre-onclone frame', a
   expect(frame.isConnected).toBe(false);
   jest.useRealTimers();
 });
+
+test('onclone normalizes block SVGs with margins into wrappers to avoid vector clipping', async () => {
+  const container = document.createElement('div');
+  const blockSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  blockSvg.setAttribute('style', 'display:block; margin: 0 auto;');
+  const inlineSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  container.append(blockSvg, inlineSvg);
+  document.body.append(container);
+
+  const canvas = document.createElement('canvas'); canvas.width = 800; canvas.height = 100;
+  (html2canvas as jest.Mock).mockImplementationOnce(async (_element, options) => {
+    // Mock getComputedStyle in jsdom for blockSvg to simulate browser layout
+    const originalGetComputedStyle = window.getComputedStyle;
+    window.getComputedStyle = (el: Element) => {
+      const styles = originalGetComputedStyle(el);
+      if (el === blockSvg) {
+        return {
+          ...styles,
+          display: 'block',
+          marginLeft: '200px',
+          marginRight: '200px',
+          marginTop: '10px',
+          marginBottom: '10px',
+        } as unknown as CSSStyleDeclaration;
+      }
+      return styles;
+    };
+    try {
+      options.onclone(document);
+    } finally {
+      window.getComputedStyle = originalGetComputedStyle;
+    }
+    return canvas;
+  });
+
+  await createPageCapture(800).capture(container, 0, 100);
+  expect(blockSvg.parentElement?.tagName).toBe('DIV');
+  expect(blockSvg.parentElement?.style.display).toBe('flex');
+  expect(blockSvg.parentElement?.style.justifyContent).toBe('center');
+  expect(blockSvg.style.marginLeft).toBe('0px');
+  expect(inlineSvg.parentElement).toBe(container);
+  container.remove();
+});

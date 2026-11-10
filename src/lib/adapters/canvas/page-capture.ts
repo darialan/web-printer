@@ -16,6 +16,60 @@ export interface CaptureTiming {
   totalMs: number;
 }
 
+function normalizeSvgElements(doc: Document | null | undefined) {
+  if (!doc?.querySelectorAll) return;
+  const win = doc.defaultView;
+  if (!win) return;
+  const svgs = doc.querySelectorAll('svg');
+  svgs.forEach(svg => {
+    if (svg.parentElement?.closest('svg')) return;
+    const parent = svg.parentNode;
+    if (!parent) return;
+
+    const cs = win.getComputedStyle(svg);
+    const isBlock = cs.display === 'block';
+    const ml = parseFloat(cs.marginLeft) || 0;
+    const mr = parseFloat(cs.marginRight) || 0;
+    const mt = parseFloat(cs.marginTop) || 0;
+    const mb = parseFloat(cs.marginBottom) || 0;
+
+    // html2canvas serializes <svg> into data:image/svg+xml with its computed styles.
+    // In an isolated SVG image, any root margin displaces vector graphics out of the
+    // image viewport (causing partially cut off or completely blank formulas).
+    // Moving external margins to a wrapper element preserves layout while keeping
+    // the rasterized SVG coordinates intact at (0, 0).
+    if (isBlock || ml > 0 || mr > 0 || mt > 0 || mb > 0) {
+      const wrapper = doc.createElement('div');
+      if (isBlock && Math.abs(ml - mr) < 2 && ml > 0) {
+        wrapper.style.display = 'flex';
+        wrapper.style.justifyContent = 'center';
+        wrapper.style.alignItems = 'center';
+        wrapper.style.width = '100%';
+        wrapper.style.marginTop = cs.marginTop;
+        wrapper.style.marginBottom = cs.marginBottom;
+      } else {
+        wrapper.style.display = cs.display === 'inline' ? 'inline-block' : cs.display;
+        wrapper.style.marginTop = cs.marginTop;
+        wrapper.style.marginBottom = cs.marginBottom;
+        wrapper.style.marginLeft = cs.marginLeft;
+        wrapper.style.marginRight = cs.marginRight;
+        wrapper.style.lineHeight = '0';
+      }
+      parent.insertBefore(wrapper, svg);
+      wrapper.appendChild(svg);
+
+      svg.style.setProperty('margin', '0', 'important');
+      svg.style.setProperty('margin-top', '0', 'important');
+      svg.style.setProperty('margin-bottom', '0', 'important');
+      svg.style.setProperty('margin-left', '0', 'important');
+      svg.style.setProperty('margin-right', '0', 'important');
+      if (isBlock) {
+        svg.style.setProperty('display', 'inline-block', 'important');
+      }
+    }
+  });
+}
+
 /** Owns bounded page canvases and each render's cloned iframe. */
 export function createPageCapture(width: number, signal?: AbortSignal) {
   const canvases = new Set<HTMLCanvasElement>();
@@ -67,6 +121,7 @@ export function createPageCapture(width: number, signal?: AbortSignal) {
             frame = doc.defaultView?.frameElement || null;
             cloned = performance.now();
             if (abandoned || signal?.aborted || disposed) { frame?.remove(); throw new Error('导出已取消'); }
+            normalizeSvgElements(doc);
           },
           ignoreElements: node => {
             if (isDebugLayer(node)) return true;
