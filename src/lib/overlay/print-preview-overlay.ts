@@ -133,7 +133,7 @@ export function createPrintPreviewView(options: PrintPreviewViewOptions = {}): P
   }
 
   const activeLocale: PreviewLocale =
-    options.locale || (ownerDoc.documentElement.lang?.toLowerCase().startsWith('en') ? 'en' : 'zh');
+    options.locale || (ownerDoc.documentElement.lang?.toLowerCase().startsWith('zh') ? 'zh' : 'en');
   const t = PREVIEW_I18N[activeLocale];
 
   ensurePreviewStyles(ownerDoc);

@@ -10,7 +10,7 @@ export function readStoredLocale(): Locale {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved === 'zh' || saved === 'en') return saved;
   } catch { /* Storage can be unavailable in private contexts. */ }
-  return navigator.language?.toLowerCase().startsWith('zh') ? 'zh' : 'en';
+  return 'en';
 }
 
 function syncDocumentLocale(loc: Locale) {

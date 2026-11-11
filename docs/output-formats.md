@@ -1,10 +1,14 @@
-# 分页输出层：PDF 与 PNG
+# Output Formats: PDF & Paginated PNG
 
-PDF 和分页 PNG 使用同一份快照、分页结果和逐页截图；Writer 只负责纸张合成与文件编码。
+<p align="right">
+  <strong>English</strong> | <a href="./output-formats.zh-CN.md">中文</a>
+</p>
 
-## 使用
+PDF and paginated PNG share the same snapshot, pagination results, and page-by-page canvas captures; the Writer layer only handles paper composition and file encoding.
 
-工作台通过导出按钮右侧的箭头选择格式，按钮主体直接导出当前格式。默认 PDF；「PNG 分页图片」将每一页保存为一张完整纸张图片，并统一打包下载，避免多文件自动下载被浏览器拦截。文件按 `page-001.png`、`page-002.png` 排序。图片包含当前纸张尺寸、方向、边距、页眉页脚与页码，末页保留完整纸张高度。切换输出格式不改变分页或关闭预览。输出设置提供 A4/A3/A5/Letter、常见社媒图片比例（3:4、4:5、1:1、9:16）、电商长图和自定义尺寸；社媒图片预设使用像素单位，页面宽高和内边距仍统一换算为毫米保存。设置区同时显示扣除边距后的正文可用尺寸。
+## Usage
+
+In the workbench toolbar, select formats via the dropdown arrow next to the export button. Default is PDF. "PNG Pages (ZIP)" saves each page as a full paper image and packages them into a `.zip` archive to prevent multiple automatic downloads from being blocked by the browser. Files are sequentially named `page-001.png`, `page-002.png`, etc.
 
 ```ts
 import { outputDocument, outputPDF } from '@darialan/web-printer';
@@ -12,38 +16,16 @@ import { outputDocument, outputPDF } from '@darialan/web-printer';
 const controller = new AbortController();
 const result = await outputDocument({
   element: document.getElementById('content'),
-  filename: '报告',
-  format: 'png', // 'pdf' | 'png'，默认 'pdf'
-  download: false, // true 时直接下载；false 时由调用方处理 Blob
+  filename: 'report',
+  format: 'png', // 'pdf' | 'png', default: 'pdf'
+  download: false, // Set false to inspect Blob programmatically
   signal: controller.signal,
   onProgress: (completed, total) => console.log(completed, total),
 });
-// PNG 模式：result.blob 是 application/zip，内含逐页 PNG。
-// PDF 模式：result.blob 是 application/pdf。
-// result.pages / bytes / layoutMs / totalMs / captures 两种格式均可用。
+// PNG mode: result.blob is application/zip containing individual PNG pages.
+// PDF mode: result.blob is application/pdf.
+// result.pages / bytes / layoutMs / totalMs / captures are available in both modes.
 
-// 原有 PDF 调用保持兼容：
-await outputPDF({ element: document.getElementById('content'), filename: '报告' });
+// Traditional PDF export remains fully compatible:
+await outputPDF({ element: document.getElementById('content'), filename: 'report' });
 ```
-
-图片采用与 PDF 正文相同的逐页截图，图片尺寸取决于源区域宽度及截图像素预算，纸张宽高比来自输出设置；不是额外设置的固定 DPI。PNG 是无损光栅图片。页内不含可搜索的文本层。
-
-## 模块边界
-
-- `application/print-service.ts`：共享 prepareLayout、逐页 capture、进度、取消和资源清理。
-- `output/types.ts`：输出格式与 `OutputWriter` 协议。writer 接收页截图与纸张坐标，不测量 DOM、不重新分页。
-- `output/index.ts`：格式分发。PDF 使用原有 jsPDF adapter；PNG 使用 image writer。
-- `output/image-writer.ts`：按共享 geometry 合成完整纸张，逐页编码 PNG 后立即释放合成 canvas。
-- `output/zip.ts`：PNG 已压缩，ZIP 使用 STORE，无新增运行时依赖；写入 CRC32 与中央目录。页码文件名固定 ASCII，文档标题仅用于下载包名称。
-
-扩展格式时实现 `OutputWriter`，注册到格式工厂，并增加工具栏选项即可；分页算法、快照和截图链路不需要增加格式判断。React 项目可从 `@darialan/web-printer/react` 导入 `useWebPrinter()`，用 `exportDocument()` 选择格式；`usePdfPrint().exportPDF()` 作为兼容接口保留。非 React 和 React 调用方均可直接调用核心入口的 `outputDocument()`。
-
-## 失败与取消
-
-任一页截图或编码失败，整个任务失败，不下载不完整文件。导出前及每页处理后检查取消状态；编码中的原生 canvas 操作结束后停止，不开始下一页或最终下载。所有路径释放快照、截图 canvas 和输出 writer。PNG 字节保留到 ZIP 完成，因此总内存仍随压缩图片总量增长；整篇正文不会合成一张超长 canvas。ZIP 不支持 ZIP64，超出标准 ZIP 容量会明确报错。
-
-## 验证
-
-单测覆盖 ZIP CRC32/目录偏移、纸张合成坐标、页眉页脚与页码、编码失败/取消清理和共享导出链路。`e2e/v3.spec.mjs` 下载真实 PNG ZIP，校验三页连续文件名和逐页颜色；下载 PDF 后用 PDF.js 校验页数。Benchmark 的固定样本进一步比较原页面、快照和实际 PDF 栅格图，复现命令与指标边界见 [Benchmark](https://github.com/darialan/web-printer/blob/master/docs/benchmark.md)。
-
-截图在 `onclone` 前后都持有自己的 iframe 引用，失败、取消与 30 秒超时均清理；晚返回的 Canvas 清零。取消无法抢占浏览器正在同步执行的一段 JavaScript，但不会开始后续页面或下载半成品。新增 `captures` 诊断记录每次截图的像素数和阶段时序。PNG 累计编码预算仍为 128 MiB，PDF 组装字节也随文档增长。

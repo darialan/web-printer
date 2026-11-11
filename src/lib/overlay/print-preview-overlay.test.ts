@@ -55,45 +55,45 @@ describe('previewPrint 原生纸张预览小窗', () => {
 
     expect(spy).toHaveBeenCalledWith(expect.objectContaining({ element: targetEl }));
     expect(controller.data.pages).toHaveLength(3);
-    expect(screen.getByText('📄 纸张预览')).toBeInTheDocument();
-    expect(screen.getByText('3 页')).toBeInTheDocument();
+    expect(screen.getByText('📄 Paper Preview')).toBeInTheDocument();
+    expect(screen.getByText('3 pages')).toBeInTheDocument();
     expect(screen.getByText(/P\.1 \/ 3 · A4/)).toBeInTheDocument();
     expect(screen.getByText('1 / 3')).toBeInTheDocument();
 
     controller.close();
-    expect(screen.queryByText('📄 纸张预览')).not.toBeInTheDocument();
+    expect(screen.queryByText('📄 Paper Preview')).not.toBeInTheDocument();
   });
 
   test('支持折叠小窗、全屏放大/退出（含 Esc 快捷键）与缩放控制', async () => {
     const controller = await open({ element: targetEl });
 
     // 1. 缩放控制：默认 100%，点击放大 -> 110%，缩小 -> 100%
-    expect(screen.getByTitle('点击重置为 100% 适应大小')).toHaveTextContent('100%');
-    fireEvent.click(screen.getByTitle('放大预览'));
-    expect(screen.getByTitle('点击重置为 100% 适应大小')).toHaveTextContent('110%');
-    fireEvent.click(screen.getByTitle('缩小预览'));
-    expect(screen.getByTitle('点击重置为 100% 适应大小')).toHaveTextContent('100%');
+    expect(screen.getByTitle('Click to reset zoom to 100%')).toHaveTextContent('100%');
+    fireEvent.click(screen.getByTitle('Zoom in'));
+    expect(screen.getByTitle('Click to reset zoom to 100%')).toHaveTextContent('110%');
+    fireEvent.click(screen.getByTitle('Zoom out'));
+    expect(screen.getByTitle('Click to reset zoom to 100%')).toHaveTextContent('100%');
 
     // 编程式缩放与重置
     controller.setZoom(1.3);
-    expect(screen.getByTitle('点击重置为 100% 适应大小')).toHaveTextContent('130%');
-    fireEvent.click(screen.getByTitle('点击重置为 100% 适应大小'));
-    expect(screen.getByTitle('点击重置为 100% 适应大小')).toHaveTextContent('100%');
+    expect(screen.getByTitle('Click to reset zoom to 100%')).toHaveTextContent('130%');
+    fireEvent.click(screen.getByTitle('Click to reset zoom to 100%'));
+    expect(screen.getByTitle('Click to reset zoom to 100%')).toHaveTextContent('100%');
 
     // 2. 折叠与展开
-    fireEvent.click(screen.getByTitle('折叠小窗'));
+    fireEvent.click(screen.getByTitle('Collapse preview'));
     expect(controller.element.querySelector('.wp-preview-body')).toHaveStyle({ display: 'none' });
-    fireEvent.click(screen.getByTitle('展开小窗'));
+    fireEvent.click(screen.getByTitle('Expand preview'));
     expect(controller.element.querySelector('.wp-preview-body')).toHaveStyle({ display: 'flex' });
 
     // 3. 全屏切换与 Escape 退出
-    fireEvent.click(screen.getByTitle('全屏预览'));
+    fireEvent.click(screen.getByTitle('Fullscreen preview'));
     expect(controller.element).toHaveClass('wp-preview-widget--fullscreen');
-    expect(screen.getByTitle('退出全屏 (Esc)')).toBeInTheDocument();
+    expect(screen.getByTitle('Exit fullscreen (Esc)')).toBeInTheDocument();
 
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(controller.element).not.toHaveClass('wp-preview-widget--fullscreen');
-    expect(screen.getByTitle('全屏预览')).toBeInTheDocument();
+    expect(screen.getByTitle('Fullscreen preview')).toBeInTheDocument();
   });
 
   test('支持挂载到自定义 container 容器（inline 模式）', async () => {
@@ -156,17 +156,17 @@ describe('previewPrint 原生纸张预览小窗', () => {
 
   test('真实的加载错误仍会显示在小窗内并向调用方抛出', async () => {
     spy.mockReset();
-    spy.mockRejectedValue(new Error('快照失败'));
-    await expect(previewPrint({ element: targetEl })).rejects.toThrow('快照失败');
-    expect(screen.getByText('纸张预览失败：快照失败')).toBeInTheDocument();
+    spy.mockRejectedValue(new Error('snapshot failed'));
+    await expect(previewPrint({ element: targetEl })).rejects.toThrow('snapshot failed');
+    expect(screen.getByText('Preview failed: snapshot failed')).toBeInTheDocument();
   });
 
   test('加载失败后点击重试可重新加载', async () => {
     spy.mockReset();
-    spy.mockRejectedValueOnce(new Error('快照失败')).mockResolvedValue(mockPreviewData);
+    spy.mockRejectedValueOnce(new Error('snapshot failed')).mockResolvedValue(mockPreviewData);
 
-    await expect(previewPrint({ element: targetEl })).rejects.toThrow('快照失败');
-    fireEvent.click(screen.getByRole('button', { name: '重试预览' }));
+    await expect(previewPrint({ element: targetEl })).rejects.toThrow('snapshot failed');
+    fireEvent.click(screen.getByRole('button', { name: 'Retry preview' }));
 
     await waitFor(() => expect(screen.getByText(/P\.1 \/ 3 · A4/)).toBeInTheDocument());
     expect(spy).toHaveBeenCalledTimes(2);
@@ -243,7 +243,7 @@ describe('previewPrint 原生纸张预览小窗', () => {
     expect(document.querySelector('.wp-preview-widget')).toBeNull();
 
     const second = await open({ element: targetEl, onClose });
-    fireEvent.click(screen.getByTitle('关闭预览小窗'));
+    fireEvent.click(screen.getByTitle('Close preview window'));
     second.close();
     expect(onClose).toHaveBeenCalledTimes(2);
   });
@@ -253,8 +253,8 @@ describe('previewPrint 原生纸张预览小窗', () => {
     const onDispose = jest.fn();
     const view = createPrintPreviewView({ onClose, onDispose, closable: false });
     view.showData(mockPreviewData);
-    expect(screen.getByText('3 页')).toBeInTheDocument();
-    expect(screen.getByTitle('关闭预览小窗')).not.toBeVisible();
+    expect(screen.getByText('3 pages')).toBeInTheDocument();
+    expect(screen.getByTitle('Close preview window')).not.toBeVisible();
 
     view.dispose();
     view.dispose();
@@ -263,9 +263,9 @@ describe('previewPrint 原生纸张预览小窗', () => {
     expect(onDispose).toHaveBeenCalledTimes(1);
   });
 
-  test('createPrintPreviewView supports English locale chrome', () => {
-    const view = createPrintPreviewView({ locale: 'en' });
-    view.showData(mockPreviewData);
+  test('createPrintPreviewView defaults to English and supports Chinese locale when requested', () => {
+    const viewEn = createPrintPreviewView();
+    viewEn.showData(mockPreviewData);
     expect(screen.getByText('📄 Paper Preview')).toBeInTheDocument();
     expect(screen.getByText('3 pages')).toBeInTheDocument();
     expect(screen.getByTitle('Close preview window')).toBeInTheDocument();
@@ -273,6 +273,17 @@ describe('previewPrint 原生纸张预览小窗', () => {
     expect(screen.getByTitle('Zoom out')).toBeInTheDocument();
     expect(screen.getByTitle('Collapse preview')).toBeInTheDocument();
     expect(screen.getByTitle('Fullscreen preview')).toBeInTheDocument();
-    view.dispose();
+    viewEn.dispose();
+
+    const viewZh = createPrintPreviewView({ locale: 'zh' });
+    viewZh.showData(mockPreviewData);
+    expect(screen.getByText('📄 纸张预览')).toBeInTheDocument();
+    expect(screen.getByText('3 页')).toBeInTheDocument();
+    expect(screen.getByTitle('关闭预览小窗')).toBeInTheDocument();
+    expect(screen.getByTitle('放大预览')).toBeInTheDocument();
+    expect(screen.getByTitle('缩小预览')).toBeInTheDocument();
+    expect(screen.getByTitle('折叠小窗')).toBeInTheDocument();
+    expect(screen.getByTitle('全屏预览')).toBeInTheDocument();
+    viewZh.dispose();
   });
 });

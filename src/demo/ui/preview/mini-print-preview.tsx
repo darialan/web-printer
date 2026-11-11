@@ -57,6 +57,7 @@ export class MiniPreviewBoundary extends React.Component<{
   children: React.ReactNode;
   onRetry: () => void;
   onClose: () => void;
+  locale?: Locale;
 }, { error: string | null }> {
   state = { error: null as string | null };
 
@@ -67,6 +68,6 @@ export class MiniPreviewBoundary extends React.Component<{
   render() {
     if (!this.state.error) return this.props.children;
     return <MiniPrintPreview data={null} error={this.state.error}
-      onRetry={this.props.onRetry} onClose={this.props.onClose} />;
+      onRetry={this.props.onRetry} onClose={this.props.onClose} locale={this.props.locale} />;
   }
 }

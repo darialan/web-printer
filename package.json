@@ -1,7 +1,7 @@
 {
   "name": "@darialan/web-printer",
   "version": "3.2.0",
-  "description": "专注长文档与业务报表的内容感知分页引擎，保留打印视图布局，可靠导出 PDF 和逐页 PNG。",
+  "description": "Content-aware in-browser HTML pagination and export engine for documents, reports, and tables into PDF and PNG.",
   "author": "darialan",
   "license": "MIT",
   "repository": {
@@ -45,12 +45,11 @@
   "files": [
     "dist",
     "README.md",
-    "README.en.md",
+    "README.zh-CN.md",
+    "CHANGELOG.md",
+    "CHANGELOG.zh-CN.md",
     "LICENSE",
-    "docs/migration-to-web-printer.md",
-    "docs/output-formats.md",
-    "docs/migration-to-v3.md",
-    "docs/benchmark.md"
+    "docs"
   ],
   "dependencies": {
     "html2canvas": "^1.4.1",

@@ -7,8 +7,8 @@ import './site.css';
 import './landing-page.css';
 
 const REPO = 'https://github.com/darialan/web-printer';
-const DOCS = `${REPO}#readme`;
-const BENCHMARK_DOC = `${REPO}/blob/master/docs/benchmark.md`;
+const benchmarkDocUrl = (locale: Locale) => `${REPO}/blob/master/docs/benchmark${locale === 'zh' ? '.zh-CN' : ''}.md`;
+const guideDocUrl = (locale: Locale) => `${REPO}/blob/master/${locale === 'zh' ? 'README.zh-CN.md' : 'README.md'}`;
 const INSTALL_CMD = 'npm install @darialan/web-printer';
 const technologies = ['JavaScript', 'TypeScript', 'React', 'Vue', 'HTML'] as const;
 const scenes = [
@@ -356,7 +356,7 @@ export function LandingPage() {
               <h3>{t.benchmarkTitle}</h3>
               <p className="section-description">{t.benchmarkBody}</p>
             </div>
-            <a href={BENCHMARK_DOC} target="_blank" rel="noreferrer" className="text-link">
+            <a href={benchmarkDocUrl(locale)} target="_blank" rel="noreferrer" className="text-link">
               {t.benchmarkViewReport}<Icon name="external" size={16} />
             </a>
           </div>
@@ -387,7 +387,7 @@ export function LandingPage() {
           </div>
           <div className="benchmark-footer">
             <p className="benchmark-note">{t.benchmarkNote}</p>
-            <a href={BENCHMARK_DOC} target="_blank" rel="noreferrer" className="text-link">
+            <a href={benchmarkDocUrl(locale)} target="_blank" rel="noreferrer" className="text-link">
               {t.benchmarkViewReport}<Icon name="external" size={15} />
             </a>
           </div>
@@ -398,7 +398,7 @@ export function LandingPage() {
         <div className="section-heading"><h2 data-reveal>{t.examplesTitle}</h2><p className="section-description" data-reveal>{t.examplesBody}</p></div>
         <div className="scene-list">
           {scenes.map((scene, index) => <a key={scene.key} className="scene-link" href={`#/playground?scene=${scene.key}`} data-reveal>
-            <div className="scene-image"><img src={`${process.env.PUBLIC_URL}/landing/${scene.image}.png`} alt={t.scenes[index].type} loading="lazy" width="1440" height="1000" /></div>
+            <div className="scene-image"><img src={`${process.env.PUBLIC_URL}/landing/${scene.image}${locale === 'zh' ? '-zh' : ''}.png`} alt={t.scenes[index].type} loading="lazy" width="1440" height="1000" /></div>
             <span className="scene-info"><strong><Icon name={scene.icon} size={22} />{t.scenes[index].title}</strong><span>{t.scenes[index].body}</span></span>
             <span className="scene-detail">{t.openExample}<Icon name="arrow" size={20} /></span>
           </a>)}
@@ -412,7 +412,7 @@ export function LandingPage() {
             <ol className="setup-steps">
               {t.steps.map(([title, body], index) => <li key={title} data-reveal><Icon name={index === 0 ? 'code' : index === 1 ? 'dom' : 'file'} size={20} /><div><strong>{title}</strong><p>{body}</p></div></li>)}
             </ol>
-            <a href={DOCS} target="_blank" rel="noreferrer" className="text-link" data-reveal>{t.docs}<Icon name="external" size={16} /></a>
+            <a href={guideDocUrl(locale)} target="_blank" rel="noreferrer" className="text-link" data-reveal>{t.docs}<Icon name="external" size={16} /></a>
           </div>
           <div className="quickstart-example" data-reveal>
             <InstallCommand locale={locale} />
@@ -430,7 +430,7 @@ export function LandingPage() {
       </section>
 
       <section id="faq" className="faq-section landing-container">
-        <div><h2 data-reveal>{t.faqTitle}</h2><p className="sub" data-reveal>{t.faqBody}</p><a className="text-link" href={DOCS} target="_blank" rel="noreferrer" data-reveal>{t.docs}<Icon name="external" size={16} /></a></div>
+        <div><h2 data-reveal>{t.faqTitle}</h2><p className="sub" data-reveal>{t.faqBody}</p><a className="text-link" href={guideDocUrl(locale)} target="_blank" rel="noreferrer" data-reveal>{t.docs}<Icon name="external" size={16} /></a></div>
         <div className="faq-list">{t.questions.map(([question, answer]) => <details key={question} data-reveal><summary><span>{question}</span><span className="faq-plus" aria-hidden="true">+</span></summary><p>{answer}</p></details>)}</div>
       </section>
     </main>
@@ -439,7 +439,7 @@ export function LandingPage() {
         <p className="footer-statement" data-reveal>{t.footerLine}</p>
         <div className="footer-wrap">
           <a className="brand" href="#/" aria-label={t.home}><BrandMark /><BrandWordmark /></a><span className="footer-note">{t.footerNote}</span>
-          <div className="footer-links"><a href={DOCS} target="_blank" rel="noreferrer">{t.docs}<Icon name="external" size={15} /></a><a className="icon-btn" href={REPO} target="_blank" rel="noreferrer" aria-label={t.github} title="GitHub"><Icon name="github" size={21} /></a></div>
+          <div className="footer-links"><a href={guideDocUrl(locale)} target="_blank" rel="noreferrer">{t.docs}<Icon name="external" size={15} /></a><a className="icon-btn" href={REPO} target="_blank" rel="noreferrer" aria-label={t.github} title="GitHub"><Icon name="github" size={21} /></a></div>
         </div>
       </div>
     </footer>

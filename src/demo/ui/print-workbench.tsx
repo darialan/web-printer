@@ -314,7 +314,7 @@ export function PrintWorkbench({
           locale={locale} />}
       />
     </div>
-    {previewOpen && <MiniPreviewBoundary key={previewAttempt} onRetry={handleRetryPreview} onClose={handleClosePreview}>
+    {previewOpen && <MiniPreviewBoundary key={previewAttempt} onRetry={handleRetryPreview} onClose={handleClosePreview} locale={locale}>
       <MiniPrintPreview data={miniPreviewData} loading={previewLoading} error={previewError}
         onRetry={handleRetryPreview} onClose={handleClosePreview} locale={locale} />
     </MiniPreviewBoundary>}

@@ -5,74 +5,72 @@
 <h1 align="center">Web Printer</h1>
 
 <p align="center">
-  <a href="./README.en.md">English</a> | <strong>中文</strong>
+  <strong>English</strong> | <a href="./README.zh-CN.md">中文说明</a>
 </p>
 
-<p align="center"><strong>保留网页样式，按内容分页，更快、更稳地导出 PDF 和图片。</strong></p>
+<p align="center"><strong>Preserve web page styling. Paginate naturally by content. Export PDF and images faster and more reliably.</strong></p>
 <p align="center"><em>Print what you see. Break where it makes sense.</em></p>
 
-Web Printer 是一款浏览器端 HTML 分页导出工具，适合业务报表、长表格、合同和文章。它针对 [html2pdf.js](https://github.com/eKoopmans/html2pdf.js) 在复杂页面中可能出现的**内容截断、跨页错乱和长文档白屏**问题，改进了分页和渲染流程。
+Web Printer is a browser-side HTML pagination and export engine tailored for business reports, long tables, contracts, and articles. It addresses common pain points in [html2pdf.js](https://github.com/eKoopmans/html2pdf.js) on complex pages, such as **clipped text lines, broken table rows across pages, and blank whiteouts on long documents**.
 
-
-在基于 Apple M1 Pro (16GB RAM) 标准环境的 Benchmark 中，**5 页文档导出约快 2.0 倍，10 页约快 1.8 倍，复杂表格约快 2.5 倍**；15 页、20 页和 50 页长文档测试也稳定通过了逐页内容校验。详见下方[测试结果](#benchmark-与-html2pdfjs-对比)。
+In standardized benchmarks on Apple M1 Pro (16GB RAM), **5-page documents export ~2.0x faster, 10-page documents export ~1.8x faster, and complex tables export ~2.5x faster**; 15-page, 20-page, and 50-page long document tests consistently pass page-by-page visual validation without memory crashes or blank pages. See [Benchmark Comparison](#benchmark-comparison-with-html2pdfjs).
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@darialan/web-printer"><img src="https://img.shields.io/npm/v/@darialan/web-printer?color=245e48" alt="npm 版本"></a>
+  <a href="https://www.npmjs.com/package/@darialan/web-printer"><img src="https://img.shields.io/npm/v/@darialan/web-printer?color=245e48" alt="npm version"></a>
   <a href="https://github.com/darialan/web-printer/blob/master/LICENSE"><img src="https://img.shields.io/npm/l/@darialan/web-printer?color=245e48" alt="License MIT"></a>
-  <a href="https://pdf-demo-phi.vercel.app/#/playground"><img src="https://img.shields.io/badge/demo-live-245e48" alt="在线 Demo"></a>
+  <a href="https://pdf-demo-phi.vercel.app/#/playground"><img src="https://img.shields.io/badge/demo-live-245e48" alt="Live Demo"></a>
 </p>
 
+[Live Demo](https://pdf-demo-phi.vercel.app/#/playground) · [npm](https://www.npmjs.com/package/@darialan/web-printer) · [Full Benchmark](https://github.com/darialan/web-printer/blob/master/docs/benchmark.md) · [Integration Guide](https://github.com/darialan/web-printer/blob/master/docs/npm-package-guide.md) · [Changelog](./CHANGELOG.md)
 
-[在线体验](https://pdf-demo-phi.vercel.app/#/playground) · [npm](https://www.npmjs.com/package/@darialan/web-printer) · [完整 Benchmark](https://github.com/darialan/web-printer/blob/master/docs/benchmark.md) · [接入指南](https://github.com/darialan/web-printer/blob/master/docs/npm-package-guide.md) · [更新日志](./CHANGELOG.md)
+![Web Printer Workbench: pagination protection and virtual paper preview](https://raw.githubusercontent.com/darialan/web-printer/master/assets/readme/workbench-table.webp)
 
-![Web Printer 工作台：分页保护与纸张预览](https://raw.githubusercontent.com/darialan/web-printer/master/assets/readme/workbench-table.webp)
+## Why Not html2pdf.js?
 
-## 为什么不直接用 html2pdf.js？
+While `html2pdf.js` is widely known for exporting web pages to PDF, developers frequently encounter [clipped text lines](https://github.com/eKoopmans/html2pdf.js/issues/692), [broken table layouts across page boundaries](https://github.com/eKoopmans/html2pdf.js/issues/281), and [blank screen crashes on long documents](https://github.com/eKoopmans/html2pdf.js/issues/19).
 
-html2pdf.js 已经可以将网页导出为 PDF，但在长文档和复杂业务页面中，仍有开发者反馈[文字被截断](https://github.com/eKoopmans/html2pdf.js/issues/692)、[表格跨页问题](https://github.com/eKoopmans/html2pdf.js/issues/281)、[超长页面输出空白](https://github.com/eKoopmans/html2pdf.js/issues/19)等情况。
+The architectural difference of Web Printer: **calculate safe pagination break points first using actual DOM geometry, then render each page independently**, rather than taking a monolithic screenshot and slicing it naively by fixed pixel heights.
 
-Web Printer 的区别在于：**先计算内容的安全分页位置，再逐页渲染**，而不是对整张长截图直接按固定高度裁切。
-
-| 遇到的问题 | Web Printer 的处理方式 |
+| Issue in Traditional Tools | How Web Printer Solves It |
 | --- | --- |
-| 文字在页尾被切成半行 | 测量文字行的位置，优先在行与行之间分页 |
-| 表格行被截断、翻页后看不到表头 | 优先保留完整表格行，支持跨页重复表头 |
-| 分页后页面布局变化 | 在离屏快照中测量和渲染，尽量保留原有 CSS 布局 |
-| 长文档出现空白或重复内容 | 先计算分页，再逐页生成 Canvas，避免创建一张超高截图 |
+| Text lines cut in half at page bottom | Measures real line-box geometry with DOM Range, breaking cleanly between lines |
+| Table rows split in half, losing headers across pages | Keeps table rows intact with atomic protection, repeating headers automatically |
+| Page layout reflow during printing | Measures and renders inside an isolated offscreen sandbox, leaving host DOM untouched |
+| Blank pages or browser freeze on long documents (50+ pages) | Precalculates safe page breaks and renders pages individually, eliminating single-canvas size limits |
 
-## Benchmark：与 html2pdf.js 对比
+## Benchmark: Comparison with html2pdf.js
 
-以下数据来自标准硬件环境（Apple M1 Pro 8 核 / 16GB 统一内存 / macOS）：**html2pdf.js 0.14.0** 对比 **Web Printer 3.0 开发代码**。每个场景独立重复 3 次，耗时取中位数。
+The following data was gathered in a standardized hardware environment (Apple M1 Pro 8-core / 16GB Unified Memory / macOS): **html2pdf.js 0.14.0** vs. **Web Printer 3.0**. Each scenario was executed 3 times independently, taking the median duration.
 
-| 测试场景 | html2pdf.js | Web Printer | 提升 / 结果 |
+| Test Scenario | html2pdf.js | Web Printer | Speedup / Result |
 | --- | ---: | ---: | --- |
-| 长文本（2 页） | 1,761 ms | **759 ms** | **快约 2.3 倍** |
-| 复杂表格（3 页） | 3,117 ms | **1,237 ms** | **快约 2.5 倍** |
-| 普通长文档（5 页） | 4,382 ms | **2,167 ms** | **快约 2.0 倍** |
-| 中长文档（10 页） | 7,798 ms | **4,265 ms** | **快约 1.8 倍** |
-| Flex / Grid 布局 | 校验失败 | **630 ms，通过** | 页面校验通过 |
-| 长文档（15 页） | 内容标记重复，校验失败 | **6.96 s，通过** | 内容校验通过 |
-| 长文档（20 页） | 内容标记重复，校验失败 | **9.96 s，通过** | 内容校验通过 |
-| 超长文档（50 页） | 导出结果全白，校验失败 | **34.98 s，通过** | 内容校验通过 |
+| Long Text (2 pages) | 1,761 ms | **759 ms** | **~2.3x faster** |
+| Complex Table (3 pages) | 3,117 ms | **1,237 ms** | **~2.5x faster** |
+| Standard Document (5 pages) | 4,382 ms | **2,167 ms** | **~2.0x faster** |
+| Medium Document (10 pages) | 7,798 ms | **4,265 ms** | **~1.8x faster** |
+| Flex / Grid Layout | Validation Failed | **630 ms, Passed** | Visual Verification Passed |
+| Long Document (15 pages) | Duplicate text markers, Validation Failed | **6.96 s, Passed** | Content Integrity Passed |
+| Long Document (20 pages) | Duplicate text markers, Validation Failed | **9.96 s, Passed** | Content Integrity Passed |
+| Extra Long Document (50 pages) | Output all blank, Validation Failed | **34.98 s, Passed** | Content Integrity Passed |
 
-<small>测试硬件与运行环境：Apple M1 Pro（8 核 CPU：6 性能核 + 2 能效核）· 16 GB 统一内存 · macOS 26.2 · Chromium 141 (Playwright) · Node.js v25 · A4 纵向 (scale 2) · DPR 1.0 · 视口 1440×1000。每份导出均通过 PDF.js 逐页严格校验空白页与内容标记完整性。数据仅代表该批样本与测试环境。</small>
+<small>Test Hardware & Environment: Apple M1 Pro (8-core CPU: 6 Performance + 2 Efficiency) · 16 GB Unified Memory · macOS 26.2 · Chromium 141 (Playwright) · Node.js v25 · A4 Portrait (scale 2) · DPR 1.0 · Viewport 1440×1000. Every exported PDF is strictly verified with PDF.js for blank pages and sequential content marker integrity. Data represents these test scenarios and environment.</small>
 
-### 极限规模与稳定性压力测试
+### Extreme Scale & Reliability Stress Testing
 
-为验证高负载和复杂生产场景下的稳定性，我们在相同测试环境（Apple M1 Pro / 16GB）下运行了自动化极限压测、内存浸泡与边界探顶测试（`npm run benchmark:stress`）：
+To verify production readiness under heavy load and extreme boundaries, we ran automated stress tests, zero-leak soak tests, and physical capacity ceiling probes (`npm run benchmark:stress`):
 
-| 压测项目 | 场景设定 | 实测表现 | 结论与验证指标 |
+| Test Item | Scenario Setup | Measured Performance | Verification & Conclusion |
 | :--- | :--- | :--- | :--- |
-| **100 页极限规模导出** | 100 页超长图文文档单次导出 | 耗时 68.6 s · 产物 32.0 MiB · 峰值 RSS 818.5 MiB | 100/100 逐页校验通过，1,000 个顺序标记无一错漏 |
-| **20 轮连续高频浸泡** | 连续执行 20 次无间隔导出任务 | 成功率 20/20 (100%) · 内存净波动 +10.9 MiB (< 3%) | 逐页 Canvas 与离屏快照即用即毁，无累积内存泄漏 |
-| **中途取消与快速重入** | 导出进行中触发 AbortController 并立即重发 | 中止响应 < 10 ms · 临时 DOM 零残留 · 新任务完全正常 | 支持平稳取消与高频重入，无状态污染 |
-| **单标签页物理上限实测** | 100 页 → 200 页 → 300 页探顶 | 200 页成功导出（331.6 s / 64.2 MiB PDF / 峰值 1.3 GiB）；300 页触及 V8 堆上限 | 推荐单次导出安全容量上限为 **150 ~ 200 页**；超大文档可利用 `startPage` / `endPage` 分卷导出 |
+| **100-Page Extreme Scale Export** | 100-page continuous mixed-media doc | 68.6 s · 32.0 MiB PDF · Peak RSS 818.5 MiB | 100/100 pages verified via PDF.js; 1,000 sequential markers intact |
+| **20-Round Continuous Soak Test** | 20 consecutive export runs with zero delay | 20/20 (100% success) · Net RSS drift +10.9 MiB (< 3%) | Page canvases & offscreen DOM destroyed immediately; no memory leak |
+| **Mid-flight Abort & Fast Re-entry** | Aborted via AbortController mid-flight and immediately re-triggered | Abort latency < 10 ms · 0 DOM residual · Subsequent run 100% clean | Graceful cancellation and high-frequency re-entrancy without state pollution |
+| **Single-Tab Physical Capacity Probe** | Scaling from 100 → 200 → 300 pages | 200 pages succeeded (331.6 s / 64.2 MiB PDF / 1.3 GiB RSS); 300 pages hit V8 old space heap limit | Recommended single-job safe capacity ceiling is **150–200 pages**; larger docs should use `startPage` / `endPage` for ranged chunking |
 
-[查看完整测试报告、原始数据口径和复现方法](https://github.com/darialan/web-printer/blob/master/docs/benchmark.md)
+[View Full Benchmark Report (Methodology & Reproduction Steps)](https://github.com/darialan/web-printer/blob/master/docs/benchmark.md)
 
-## 快速开始
+## Quick Start
 
-### 1. NPM 安装
+### 1. NPM Installation
 
 ```bash
 npm install @darialan/web-printer
@@ -83,24 +81,24 @@ import { outputDocument, previewPrint, togglePageBreaks } from '@darialan/web-pr
 
 const el = document.getElementById('print-area')!;
 
-// 导出 PDF 或逐页 PNG (ZIP)
+// Export PDF or multipage PNG (ZIP)
 await outputDocument({ element: el, filename: 'report.pdf', format: 'pdf' });
 
-// 弹出右下角纸张预览窗（支持折叠、全屏、缩放与滚动懒加载）
+// Open virtual paper preview floating window (collapse, fullscreen, zoom, virtual scroll)
 await previewPrint({ element: el });
 
-// 显示/隐藏原页面上的分页切割线与调试标记
+// Toggle visual page-break guides and debug markers directly on the page
 await togglePageBreaks({ element: el });
 ```
 
-### 2. 完整可运行示例（可直接复制到 HTML 或 JSFiddle 运行）
+### 2. Standalone HTML Example (Directly runnable in HTML or JSFiddle)
 
 ```html
-<button id="btn-preview">预览各页</button>
-<button id="btn-line">显示/隐藏分页线</button>
-<button id="btn-pdf">导出 PDF</button>
+<button id="btn-preview">Preview Pages</button>
+<button id="btn-line">Toggle Page Breaks</button>
+<button id="btn-pdf">Export PDF</button>
 
-<!-- 待打印内容区 -->
+<!-- Target printable area -->
 <div id="print-area"></div>
 
 <script type="module">
@@ -112,7 +110,7 @@ await togglePageBreaks({ element: el });
 
   const el = document.getElementById('print-area');
 
-  // 生成测试内容（data-print-atomic="true" 保护卡片不被跨页截断）
+  // Generate test blocks (data-print-atomic="true" protects cards from being cut across pages)
   el.innerHTML = Array.from({ length: 6 }, (_, i) => `
     <div data-print-atomic="true" style="height: 360px; border: 1px solid #ccc; margin: 12px 0; padding: 16px;">
       <h3>Test Block #${i + 1}</h3>
@@ -120,32 +118,32 @@ await togglePageBreaks({ element: el });
     </div>
   `).join('');
 
-  // 1. 预览各页（自动弹出右下角暗色悬浮窗，支持折叠、全屏、缩放与滚动懒加载）
+  // 1. Preview pages (pops up floating preview widget)
   document.getElementById('btn-preview').onclick = () => {
     previewPrint({ element: el });
   };
 
-  // 2. 显示/隐藏分页切割线
+  // 2. Toggle visual page break lines
   document.getElementById('btn-line').onclick = () => {
     togglePageBreaks({ element: el });
   };
 
-  // 3. 导出 PDF
+  // 3. Export PDF
   document.getElementById('btn-pdf').onclick = () => {
     outputPDF({ element: el, filename: 'test.pdf' });
   };
 </script>
 ```
 
-还支持 React Hook（`@darialan/web-printer/react`）、自定义页眉页脚、导出进度与取消操作，详见[接入指南](https://github.com/darialan/web-printer/blob/master/docs/npm-package-guide.md)。
+Also includes a specialized React Hook (`@darialan/web-printer/react`), custom headers and footers, progress callbacks, and export cancellation. See the [Integration Guide](https://github.com/darialan/web-printer/blob/master/docs/npm-package-guide.md).
 
-## 使用说明
+## Usage Notes
 
-- 适用于已经排版好的网页内容，例如报表、单据、合同、文章及其他打印视图。
-- 输出 PDF 为位图页面，目前不支持选中或搜索其中的文字。
-- 截图基于 `html2canvas`，部分 CSS 特性和跨域图片可能受到浏览器及底层库限制。
+- Best suited for rendered web content like invoices, receipts, contracts, reports, and articles.
+- The output PDF contains rasterized pages (canvas bitmaps); text selection within the PDF is currently not supported.
+- Rendering relies on `html2canvas`; certain cutting-edge CSS features and cross-origin images may be subject to browser canvas security restrictions.
 
-[接入指南](https://github.com/darialan/web-printer/blob/master/docs/npm-package-guide.md) · [Benchmark](https://github.com/darialan/web-printer/blob/master/docs/benchmark.md) · [迁移说明](https://github.com/darialan/web-printer/blob/master/docs/migration-to-v3.md) · [Issues](https://github.com/darialan/web-printer/issues)
+[Integration Guide](https://github.com/darialan/web-printer/blob/master/docs/npm-package-guide.md) · [Benchmark](https://github.com/darialan/web-printer/blob/master/docs/benchmark.md) · [Migration Guide](https://github.com/darialan/web-printer/blob/master/docs/migration-to-v3.md) · [Issues](https://github.com/darialan/web-printer/issues)
 
 ## License
 
