@@ -1,6 +1,6 @@
 {
   "name": "@darialan/web-printer",
-  "version": "3.2.0",
+  "version": "3.2.1",
   "description": "Content-aware in-browser HTML pagination and export engine for documents, reports, and tables into PDF and PNG.",
   "author": "darialan",
   "license": "MIT",
