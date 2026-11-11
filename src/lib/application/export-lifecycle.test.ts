@@ -39,7 +39,7 @@ test('cancellation before finalization cannot download a partial PDF', async () 
   const { cleanup, dispose, finalize } = arrange();
   const abort = new AbortController();
   await expect(outputPDF({ element: null, filename: 'test', signal: abort.signal,
-    onProgress: completed => { if (completed) abort.abort(); } })).rejects.toThrow('取消');
+    onProgress: completed => { if (completed) abort.abort(); } })).rejects.toThrow('cancelled');
   expect(cleanup).toHaveBeenCalledTimes(1);
   expect(dispose).toHaveBeenCalledTimes(1);
   expect(finalize).not.toHaveBeenCalled();
@@ -62,6 +62,6 @@ jest.mock('../output/image-writer', () => ({ createImageWriter: jest.fn() }));
 
 test('unknown output formats fail before allocating a snapshot', async () => {
   const { outputDocument } = await import('./print-service');
-  await expect(outputDocument({ element: null, filename: 'test', format: 'toString' as any })).rejects.toThrow('不支持的输出格式');
+  await expect(outputDocument({ element: null, filename: 'test', format: 'toString' as any })).rejects.toThrow('Unsupported output format');
   expect(prepareLayout).not.toHaveBeenCalled();
 });

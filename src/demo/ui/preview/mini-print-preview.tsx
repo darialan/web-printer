@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPrintPreviewView, PrintPreviewView } from '../../../lib';
 import { HtmlPreviewData } from './print-preview-modal';
+import type { Locale } from '../locale';
 
 export interface MiniPrintPreviewProps {
   data: HtmlPreviewData | null;
@@ -8,13 +9,14 @@ export interface MiniPrintPreviewProps {
   error?: string | null;
   onRetry?: () => void;
   onClose?: () => void;
+  locale?: Locale;
 }
 
 /**
- * 纸张预览小窗。UI 与交互（折叠、全屏、缩放、懒加载、焦点管理）全部来自库里的
- * `createPrintPreviewView`，这里只负责把 React 状态同步给它，不再维护第二套预览实现。
+ * Virtual paper preview floating window. UI and interactions (collapse, fullscreen,
+ * zoom, lazy loading, focus management) are provided by library's `createPrintPreviewView`.
  */
-export function MiniPrintPreview({ data, loading = false, error, onRetry, onClose }: MiniPrintPreviewProps) {
+export function MiniPrintPreview({ data, loading = false, error, onRetry, onClose, locale }: MiniPrintPreviewProps) {
   const viewRef = useRef<PrintPreviewView | null>(null);
   const [fault, setFault] = useState<Error | null>(null);
   const callbacks = useRef({ onRetry, onClose });
@@ -25,13 +27,13 @@ export function MiniPrintPreview({ data, loading = false, error, onRetry, onClos
 
   useEffect(() => {
     if (!visible) return;
-    const view = createPrintPreviewView({ closable, onClose: () => callbacks.current.onClose?.() });
+    const view = createPrintPreviewView({ closable, onClose: () => callbacks.current.onClose?.(), locale });
     viewRef.current = view;
     return () => {
       view.dispose();
       if (viewRef.current === view) viewRef.current = null;
     };
-  }, [visible, closable]);
+  }, [visible, closable, locale]);
 
   useEffect(() => {
     const view = viewRef.current;
@@ -41,7 +43,7 @@ export function MiniPrintPreview({ data, loading = false, error, onRetry, onClos
       else if (loading) view.showLoading();
       else if (data) view.showData(data);
     } catch (reason) {
-      // 渲染异常交给错误边界，只影响小窗，不影响源页面标注
+      // Delegate rendering errors to error boundary without affecting source page annotations
       setFault(reason instanceof Error ? reason : new Error(String(reason)));
     }
   }, [data, loading, error, retryable, visible, closable]);

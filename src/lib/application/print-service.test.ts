@@ -31,6 +31,6 @@ test('preview tolerates subpixel boundary rounding but rejects actual intersecti
     capacity: 200,
     cleanup,
   });
-  await expect(calculatePagesArray({ contentElement: source })).rejects.toThrow('穿过受保护内容');
+  await expect(calculatePagesArray({ contentElement: source })).rejects.toThrow('intersect protected content');
   expect(cleanup).toHaveBeenCalledTimes(2);
 });

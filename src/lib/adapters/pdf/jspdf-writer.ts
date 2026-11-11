@@ -62,7 +62,7 @@ export async function createPdfWriter({
           const label = document.createElement('canvas');
           label.width = 640; label.height = 48;
           const context = label.getContext('2d');
-          if (!context) throw new Error('浏览器无法渲染中文页码');
+          if (!context) throw new Error('Browser failed to render page numbers');
           context.font = '24px sans-serif';
           const width = Math.ceil(context.measureText(text).width);
           context.fillStyle = '#787878';

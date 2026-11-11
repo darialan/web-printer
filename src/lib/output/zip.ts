@@ -6,7 +6,7 @@ const crcTable = Array.from({ length: 256 }, (_, index) => {
 
 /** ZIP STORE: PNG is already compressed. Keeping entries as Blobs avoids copying image buffers. */
 export function createZipArchive(entries: { name: string; data: Uint8Array }[]): Blob {
-  if (entries.length > 65535) throw new Error('图片页数超出 ZIP 限制');
+  if (entries.length > 65535) throw new Error('Number of page images exceeds ZIP format limit');
   const parts: BlobPart[] = [], directory: BlobPart[] = [];
   let offset = 0, directorySize = 0;
   for (const { name, data } of entries) {
@@ -15,7 +15,7 @@ export function createZipArchive(entries: { name: string; data: Uint8Array }[]):
     let crc = 0xffffffff;
     for (let i = 0; i < data.length; i++) crc = (crc >>> 8) ^ crcTable[(crc ^ data[i]) & 255];
     crc = (crc ^ 0xffffffff) >>> 0;
-    if (offset + data.length + filename.length + 30 > 0xffffffff) throw new Error('图片包超过 4GB，请分批导出');
+    if (offset + data.length + filename.length + 30 > 0xffffffff) throw new Error('ZIP archive exceeds 4GB limit, please export in batches');
     const local = new Uint8Array(30 + filename.length), lv = new DataView(local.buffer);
     lv.setUint32(0, 0x04034b50, true); lv.setUint16(4, 20, true);
     lv.setUint16(12, 33, true); // 1980-01-01, the first DOS date.
@@ -29,7 +29,7 @@ export function createZipArchive(entries: { name: string; data: Uint8Array }[]):
     parts.push(local, data); directory.push(central);
     offset += local.length + data.length; directorySize += central.length;
   }
-  if (offset + directorySize + 22 > 0xffffffff) throw new Error('图片包超过 4GB，请分批导出');
+  if (offset + directorySize + 22 > 0xffffffff) throw new Error('ZIP archive exceeds 4GB limit, please export in batches');
   const end = new Uint8Array(22), ev = new DataView(end.buffer);
   ev.setUint32(0, 0x06054b50, true); ev.setUint16(8, entries.length, true); ev.setUint16(10, entries.length, true);
   ev.setUint32(12, directorySize, true); ev.setUint32(16, offset, true);

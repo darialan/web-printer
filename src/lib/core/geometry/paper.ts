@@ -7,7 +7,7 @@ export const PX_PER_MM = 96 / 25.4;
 
 const pxToMm = (px: number) => Number((px * MM_PER_PX).toFixed(4));
 
-/** 社媒 / 图片画框：以像素定义，边距按画框宽度的内边距给默认值 */
+/** Social media / image frames: defined in pixels with default padding margins */
 export const IMAGE_PAPER_SIZES = {
   'card-3x4': { widthPx: 1242, heightPx: 1656, marginPx: 60 },
   'square-1x1': { widthPx: 1080, heightPx: 1080, marginPx: 54 },
@@ -24,7 +24,7 @@ export function isImagePaper(paper: Paper): paper is ImagePaper {
   return paper in IMAGE_PAPER_SIZES;
 }
 
-/** 预设自带的自然单位：纸张用 mm，社媒图片用 px，选中时自动切换，避免出现 328.61 mm 这种数字 */
+/** Natural unit for presets: mm for paper, px for social media images */
 export function getPresetUnit(paper: Paper): 'mm' | 'px' {
   return isImagePaper(paper) ? 'px' : 'mm';
 }
@@ -53,12 +53,12 @@ export interface PaperPreset {
 }
 
 /**
- * 各纸张预设标准（基准存储单位：mm）：
- * - A4、A3、A5、Letter 具有固定的标准物理宽高与统一默认页边距（10mm）
- * - 自定义尺寸（custom）：
- *   - 宽默认为 A4 纸宽度：210 mm (96 DPI 下对应 793.7 px)
- *   - 高度默认为 200 px (对应 200 * 25.4 / 96 ≈ 52.92 mm)
- *   - 上下左右边距默认为 2 px (对应 2 * 25.4 / 96 ≈ 0.53 mm)
+ * Paper preset standards (base storage unit: mm):
+ * - A4, A3, A5, Letter have fixed physical dimensions and default 10mm margins
+ * - Custom dimensions (custom):
+ *   - Default width is A4 width: 210 mm (793.7 px at 96 DPI)
+ *   - Default height is 200 px (200 * 25.4 / 96 ≈ 52.92 mm)
+ *   - Default margins are 2 px (2 * 25.4 / 96 ≈ 0.53 mm)
  */
 export const PAPER_PRESETS: Record<Paper, PaperPreset> = {
   a4: {
@@ -134,7 +134,7 @@ export const DEFAULT_SETTINGS: PrintSettings = {
 };
 
 /**
- * 根据纸张类型、纸张方向以及目标单位获取联动标准数值
+ * Get linked preset dimensions based on paper type, orientation, and target unit.
  */
 export function getPresetDimensions(
   paper: Paper,
@@ -201,20 +201,20 @@ export function mmToPt(mm: number) {
 export function resolvePaper(settings: PrintSettings) {
   const size = settings.paper === 'custom' ? [settings.widthMm, settings.heightMm] : PAPER_SIZES[settings.paper];
   if (!size || size.some(value => !Number.isFinite(value) || value <= 0)) {
-    throw new Error('页面宽高必须是大于零的数值');
+    throw new Error('Page width and height must be positive numbers');
   }
   if (!['portrait', 'landscape'].includes(settings.orientation)) {
-    throw new Error('纸张方向无效');
+    throw new Error('Invalid paper orientation');
   }
   const margins = [settings.marginTopMm, settings.marginRightMm, settings.marginBottomMm, settings.marginLeftMm];
   if (margins.some(value => !Number.isFinite(value) || value < 0)) {
-    throw new Error('页边距必须为非负数');
+    throw new Error('Page margins must be non-negative numbers');
   }
   const [short, long] = [...size].sort((a, b) => a - b);
   const [widthMm, heightMm] =
     settings.paper === 'custom' ? size : settings.orientation === 'portrait' ? [short, long] : [long, short];
   if (widthMm - margins[1] - margins[3] <= 0 || heightMm - margins[0] - margins[2] <= 0) {
-    throw new Error('页边距占满了页面，请减小边距');
+    throw new Error('Margins exceed page dimensions, please reduce margins');
   }
   return {
     pageWidth: mmToPt(widthMm),

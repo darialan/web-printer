@@ -24,6 +24,6 @@ test('top page numbers reserve their own lane below the header and never overlap
   expect(top.bodyTop).toBeCloseTo(bottom.bodyTop + 14);
   expect(top.pageNumberY).toBeLessThan(top.bodyTop);
   expect(top.pageNumberY - 9).toBeGreaterThanOrEqual(top.headerY + top.headerHeight);
-  expect(() => calculateGeometry(paper, 0, undefined, undefined)).toThrow('无效');
-  expect(() => calculateGeometry(paper, 800, Infinity, undefined)).toThrow('无效');
+  expect(() => calculateGeometry(paper, 0, undefined, undefined)).toThrow('Invalid');
+  expect(() => calculateGeometry(paper, 800, Infinity, undefined)).toThrow('Invalid');
 });

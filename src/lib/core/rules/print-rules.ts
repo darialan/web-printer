@@ -10,23 +10,23 @@ const ELEMENT_NODE_TYPE = 1;
 
 /** Atomic protects whole elements; splittable recursively measures children. */
 export const PRINT_ATTRIBUTES = {
-  /** 不可分割：最小原子化单元，严禁跨页切断，超过单页可用高度直接报错 */
+  /** Atomic: minimal atomic unit, never cut across pages, errors if exceeding single-page height */
   ATOMIC: 'data-print-atomic="true"',
-  /** 可分割元素分类；命中整块优先保护选择器时尽量整块保留，超高时递归拆分；表格行默认采用此偏好 */
+  /** Splittable element classification; prefers keeping whole block intact, recursively splits if oversized */
   SPLITTABLE: 'data-print-splittable="true"',
 
-  // 兼容别名
-  /** @deprecated 默认即递归分析，保留仅用于兼容旧标记，不再影响分类结果。 */
+  // Compatibility alias
+  /** @deprecated Default is recursive analysis; retained for backwards compatibility. */
   FORCE_SPLIT: 'data-print-break="split"',
 } as const;
 
 export const PRINT_CLASSES = {
   ATOMIC: 'print-atomic',
-  /** 可分割元素分类；命中整块优先保护选择器时尽量整块保留，超高时递归拆分；表格行默认采用此偏好 */
+  /** Splittable element classification; prefers keeping whole block intact, recursively splits if oversized */
   SPLITTABLE: 'print-splittable',
 
-  // 兼容别名
-  /** @deprecated 默认即递归分析，保留仅用于兼容旧标记，不再影响分类结果。 */
+  // Compatibility alias
+  /** @deprecated Default is recursive analysis; retained for backwards compatibility. */
   FORCE_SPLIT: 'print-force-split',
 } as const;
 
@@ -42,36 +42,37 @@ export const PDF_PRINT_CLASSES = {
 
 /** Native atomic rules. Every other element is splittable. */
 export const BASE_PRINT_RULES: readonly PrintRule[] = [
-  // 2. 不可分割规则（显式声明的原子保护块：严禁拆分，超高报错）
+  // Atomic rules (explicit atomic protection blocks: no splitting, errors if oversized)
   {
     selector:
       '[data-print-atomic="true"], .print-atomic, [data-print-keep-together="true"], .print-keep-together, [data-pdf-atomic="true"], .pdf-atomic, [data-pdf-keep-together="true"], .pdf-keep-together',
-    result: { kind: 'atomic', label: '不可分割区域' },
+    result: { kind: 'atomic', label: 'Atomic Block' },
   },
   // Standard code/formula blocks are protected independently of framework or CSS position.
-  { selector: 'pre, math', result: { kind: 'atomic', label: '代码或公式' } },
-  // 3. 原生不可切图片媒体与标题
+  { selector: 'pre, math', result: { kind: 'atomic', label: 'Code or Formula' } },
+  // Native media and form controls
   {
     selector: 'img, canvas, svg, input, button, select, textarea',
-    result: { kind: 'atomic', label: '图片媒体与表单控件' },
+    result: { kind: 'atomic', label: 'Media and Controls' },
   },
   {
     selector: 'h1, h2, h3, h4, h5, h6',
-    result: { kind: 'atomic', label: '标题' },
+    result: { kind: 'atomic', label: 'Heading' },
   },
 ];
 
 export const DEFAULT_PRINT_RULES: readonly PrintRule[] = BASE_PRINT_RULES;
 
 /**
- * splittable 分类允许递归分析子节点；命中此选择器的元素另先尝试整体测量，
- * 能放进单页可用高度就整块保护，放不下则继续递归且不报错。表格行（tr / [role="row"]）默认采用此分页偏好。
+ * Splittable classification permits recursive analysis of child nodes. Elements matching this
+ * selector first attempt whole-block measurement: if fitting within page height, protect intact;
+ * otherwise descend recursively without throwing. Table rows (tr / [role="row"]) default to this preference.
  */
 export const BASE_SPLITTABLE_SELECTOR =
   '[data-print-splittable="true"], .print-splittable, [data-print-keep-together="split"], .print-keep-or-split, [data-pdf-splittable="true"], .pdf-splittable, [data-pdf-keep-together="split"], .pdf-keep-or-split, tr, [role="row"]';
 
 /**
- * 根据基础规则与配置构造最终生效的规则列表（atomic / splittable）
+ * Construct active print rules from base rules and custom configuration.
  */
 export function buildPrintRules(config?: PrintRuleConfig): PrintRule[] {
   assertSupportedRuleConfig(config);
@@ -79,27 +80,25 @@ export function buildPrintRules(config?: PrintRuleConfig): PrintRule[] {
 
   const customList: PrintRule[] = [];
 
-  // 用户完全自定义的高级规则优先
+  // Priority for custom rules
   if (config.customRules?.length) {
     customList.push(...config.customRules);
   }
 
-  // 自定义不可分割原子项（atomic）
+  // Custom atomic selectors
   const atomicSelectors = [...(config.atomic || [])];
   if (atomicSelectors.length) {
     customList.push({
       selector: atomicSelectors.join(', '),
-      result: { kind: 'atomic', label: '自定义原子项' },
+      result: { kind: 'atomic', label: 'Custom Atomic Element' },
     });
   }
 
-  // 兜底追加纯原生基础内置规则
   return [...customList, ...BASE_PRINT_RULES];
 }
 
 /**
- * 根据配置构造整块优先保护的选择器；未命中该选择器的 splittable 元素仍递归测量。
- * 使用 splittable 字段注册选择器；forceSplit 已废弃为无操作。
+ * Construct splittable selector from configuration.
  */
 export function buildSplittableSelector(config?: PrintRuleConfig): string {
   assertSupportedRuleConfig(config);
@@ -112,7 +111,7 @@ let activePrintRules: PrintRule[] = buildPrintRules();
 let activeSplittableSelector: string = buildSplittableSelector();
 
 /**
- * 全局统一配置打印规则（业务层通过此处注册各自技术栈/组件库的选择器）
+ * Configure global print rules (used by consumers to register framework/component selectors).
  */
 export function configurePrint(config: PrintRuleConfig): void {
   const rules = buildPrintRules(config);
@@ -122,21 +121,21 @@ export function configurePrint(config: PrintRuleConfig): void {
 }
 
 /**
- * 获取当前全局生效的打印规则列表
+ * Get active global print rules.
  */
 export function getPrintRules(): readonly PrintRule[] {
   return activePrintRules;
 }
 
 /**
- * 获取当前全局生效的 splittable 选择器
+ * Get active global splittable selector.
  */
 export function getSplittableSelector(): string {
   return activeSplittableSelector;
 }
 
 /**
- * 重置全局规则为原生基础规则
+ * Reset global rules to base defaults.
  */
 export function resetPrintRules(): void {
   activePrintRules = buildPrintRules();
@@ -144,8 +143,8 @@ export function resetPrintRules(): void {
 }
 
 /**
- * 对元素节点进行分类匹配，首个匹配的选择器生效；未命中时明确归类为 splittable。
- * 文本节点不属于元素分类，交由 DOM 遍历层使用 Range 逐行测量。
+ * Classify a DOM node by matching rules; defaults to splittable.
+ * Text nodes are handled separately by Range-based line measurement.
  */
 export function classifyPrintNode(
   node: ClassifiableNode,
@@ -158,7 +157,7 @@ export function classifyPrintNode(
   return rules.find(rule => node.matches!(rule.selector))?.result || { kind: 'splittable' };
 }
 
-/** 严格不可分割：超过单页可用高度即报错，不提供任何降级路径。 */
+/** Strict atomic protection: throws if exceeding page capacity with no fallback. */
 export function assertAtomicFits(
   rule: Extract<ElementRule, { kind: 'atomic' }>,
   height: number,
@@ -168,14 +167,13 @@ export function assertAtomicFits(
   if (height <= capacity) return;
   const label = customLabel || rule.label;
   throw new Error(
-    `不可拆分区域「${label}」高 ${Math.ceil(height)}px，超过正文可用高度 ${Math.floor(capacity)}px，请缩小该区域或增大页面高度`
+    `Atomic content block "${label}" is ${Math.ceil(height)}px tall, which exceeds available page height ${Math.floor(capacity)}px. Please reduce element size or increase page height.`
   );
 }
 
 /**
- * 判断命中整块优先保护选择器的 splittable 元素是否应整体保护。
- * 整体能放进单页可用高度时保护；超高时递归分析子节点，不报错。
- * 选择器匹配由调用方（DOM 适配层）负责，这里只回答"给定高度是否该整块保护"。
+ * Determine whether a splittable element matching the whole-block preference should stay intact.
+ * Protect intact if fitting within capacity; otherwise descend recursively.
  */
 export function resolveSplittable(height: number, capacity: number): 'protect' | 'descend' {
   return height <= capacity ? 'protect' : 'descend';
@@ -184,13 +182,13 @@ export function resolveSplittable(height: number, capacity: number): 'protect' |
 /** Fail closed for JavaScript callers upgrading from the removed ignore API. */
 export function assertSupportedRuleConfig(config?: PrintRuleConfig): void {
   if (config && Object.prototype.hasOwnProperty.call(config, 'ignore')) {
-    throw new Error('Web Printer 3: PrintRuleConfig.ignore 已移除；请移除旧配置并选择合适的打印根节点');
+    throw new Error('Web Printer 3: PrintRuleConfig.ignore has been removed; please remove the legacy option and choose an appropriate print root');
   }
   assertSupportedRules(config?.customRules);
 }
 
 export function assertSupportedRules(rules?: readonly PrintRule[]): void {
   if (rules?.some(rule => !['atomic', 'splittable'].includes(rule.result?.kind))) {
-    throw new Error('Web Printer 3: ignore 元素分类已移除；规则只支持 atomic / splittable，请迁移旧规则');
+    throw new Error('Web Printer 3: "ignore" element classification has been removed; rules only support "atomic" or "splittable", please migrate legacy rules');
   }
 }

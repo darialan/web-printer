@@ -24,10 +24,10 @@ test('exact boundaries do not create a trailing empty page', () => {
 });
 
 test('rejects oversized atomic blocks, invalid geometry, and page overflow', () => {
-  expect(() => paginate(2000, 1000, [{ top: 0, bottom: 1001 }])).toThrow('不可拆分');
-  expect(() => paginate(100, 0, [])).toThrow('无效');
-  expect(() => paginate(3000, 1000, [], 2)).toThrow('页限制');
-  expect(() => paginate(1500, 1000, [{ top: 0, bottom: 900 }, { top: 800, bottom: 1100 }])).toThrow('重叠');
+  expect(() => paginate(2000, 1000, [{ top: 0, bottom: 1001 }])).toThrow('cannot be split');
+  expect(() => paginate(100, 0, [])).toThrow('Invalid');
+  expect(() => paginate(3000, 1000, [], 2)).toThrow('maximum limit');
+  expect(() => paginate(1500, 1000, [{ top: 0, bottom: 900 }, { top: 800, bottom: 1100 }])).toThrow('Overlapping');
 });
 
 test('fine slicing covers more than 100 slices without gaps or duplicate content', () => {
@@ -40,7 +40,7 @@ test('fine slicing covers more than 100 slices without gaps or duplicate content
 test('validatePageBreaks tolerates subpixel rounding but throws on real intersections', () => {
   const ranges = [{ top: 100, bottom: 150 }];
   expect(() => validatePageBreaks([{ start: 0, end: 100.04 }, { start: 100.04, end: 200 }], ranges)).not.toThrow();
-  expect(() => validatePageBreaks([{ start: 0, end: 107 }, { start: 107, end: 200 }], ranges)).toThrow('穿过受保护内容');
+  expect(() => validatePageBreaks([{ start: 0, end: 107 }, { start: 107, end: 200 }], ranges)).toThrow('intersect protected content');
 });
 
 test('seeded fractional layouts preserve content coverage and every protected interval', () => {
@@ -76,9 +76,9 @@ test('seeded fractional layouts preserve content coverage and every protected in
 test('large text documents have bounded work and reject invalid limits', () => {
   const ranges = Array.from({ length: 50000 }, (_, i) => ({ top: i * 2, bottom: i * 2 + 1.5 }));
   expect(paginate(100000, 1000, ranges, 1000)).toHaveLength(100);
-  expect(() => paginate(10, 5, [], 1.5)).toThrow('无效');
-  expect(() => paginate(10, NaN, [])).toThrow('无效');
-  expect(() => paginate(10, 5, [{ top: 1, bottom: Infinity }])).toThrow('无效');
+  expect(() => paginate(10, 5, [], 1.5)).toThrow('Invalid');
+  expect(() => paginate(10, NaN, [])).toThrow('Invalid');
+  expect(() => paginate(10, 5, [{ top: 1, bottom: Infinity }])).toThrow('Invalid');
   expect(paginate(10, 5, [{ top: -100, bottom: -20 }, { top: 20, bottom: 30 }])).toHaveLength(2);
 });
 
@@ -87,7 +87,7 @@ test('touching ranges leave their common boundary legal while nested protections
     {start:0,end:100},{start:100,end:200},{start:200,end:300},
   ]);
   expect(paginate(240, 100, [{top:80,bottom:140},{top:90,bottom:110}])[0].end).toBe(80);
-  expect(() => paginate(300, 100, [{top:0,bottom:90},{top:89,bottom:180}])).toThrow('重叠');
+  expect(() => paginate(300, 100, [{top:0,bottom:90},{top:89,bottom:180}])).toThrow('Overlapping');
 });
 
 test('a padding-only final slice takes the last whole line instead of becoming blank', () => {

@@ -24,6 +24,7 @@ npm run build:lib    # 构建 ESM / CJS / .d.ts 到 dist/
 
 ## 硬约束
 
+- **代码注释与 JSDoc 全面英文化（English Comments Rule）**：为了推进项目的国际化生态建设，所有新增、修改的代码注释、JSDoc 文档及函数说明必须使用规范专业的英文编写（All code comments and JSDoc must be in English）。
 - `src/lib/core` 不依赖 DOM、React、html2canvas、jsPDF，只做纯计算，保证可单测。
 - 依赖方向单向：`demo / ui → application → adapters + core`，不要反向 import。
 - 对外文档只写可验证的事实；内部规则与经验只放 `.agents/docs/`。

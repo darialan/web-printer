@@ -3,6 +3,7 @@ import { ConfigProvider } from 'antd';
 import { LandingPage } from './landing/landing-page';
 import { createAntdTheme } from './landing/antd-theme';
 import { ThemeProvider } from './landing/theme';
+import { LocaleProvider } from './landing/locale';
 import { trackRoute } from './analytics';
 import './App.css';
 
@@ -36,15 +37,17 @@ function App() {
     trackRoute(hash);
   }, [hash]);
   return (
-    <ThemeProvider>
-      <ConfigProvider theme={createAntdTheme()}>
-        {hash.startsWith('#/playground') ? (
-          <Suspense fallback={<div className="page-loading" role="status">正在打开打印工作台…</div>}>
-            <WorkbenchPage />
-          </Suspense>
-        ) : <LandingPage />}
-      </ConfigProvider>
-    </ThemeProvider>
+    <LocaleProvider>
+      <ThemeProvider>
+        <ConfigProvider theme={createAntdTheme()}>
+          {hash.startsWith('#/playground') ? (
+            <Suspense fallback={<div className="page-loading" role="status">正在打开打印工作台…</div>}>
+              <WorkbenchPage />
+            </Suspense>
+          ) : <LandingPage />}
+        </ConfigProvider>
+      </ThemeProvider>
+    </LocaleProvider>
   );
 }
 

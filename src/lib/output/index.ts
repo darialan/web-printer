@@ -9,7 +9,7 @@ const writerFactories: Record<OutputFormat, (options: OutputWriterOptions) => Ou
 };
 
 export function validateOutputFormat(format: OutputFormat): void {
-  if (!Object.prototype.hasOwnProperty.call(writerFactories, format)) throw new Error(`不支持的输出格式：${format}`);
+  if (!Object.prototype.hasOwnProperty.call(writerFactories, format)) throw new Error(`Unsupported output format: ${format}`);
 }
 
 export function createOutputWriter(format: OutputFormat, options: OutputWriterOptions): Promise<OutputWriter> | OutputWriter {

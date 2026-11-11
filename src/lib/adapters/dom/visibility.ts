@@ -23,6 +23,6 @@ export function clipsAxis(element: Element, axis: 'X' | 'Y'): boolean {
 export function assertNoLegacyIgnore(root: Element): void {
   const selector = '[data-print-ignore], .print-ignore, [data-pdf-ignore], .pdf-ignore';
   if (root.matches(selector) || root.querySelector(selector)) {
-    throw new Error('Web Printer 3: 检测到已移除的 ignore 标记（data-print-ignore / .print-ignore / data-pdf-ignore / .pdf-ignore）；请迁移并选择合适的打印根节点');
+    throw new Error('Web Printer 3: Legacy ignore attribute/class detected (data-print-ignore / .print-ignore / data-pdf-ignore / .pdf-ignore); please migrate and select an appropriate print root');
   }
 }

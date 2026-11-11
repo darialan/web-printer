@@ -7,6 +7,7 @@ jest.mock('jspdf', () => jest.fn());
 jest.mock('./landing/product-preview', () => ({ ProductPreview: () => <div aria-label="实际分页预览" /> }));
 
 beforeEach(() => {
+  window.history.replaceState(null, '', '/');
   localStorage.setItem('web-printer-locale', 'zh');
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
@@ -120,6 +121,47 @@ test('场景链接打开对应的工作台单据，接入示例支持键盘切�
   window.history.replaceState(null, '', '/');
 });
 
+
+test('Workbench page supports switching to English and displays English demo scenes', async () => {
+  window.history.replaceState(null, '', '/?lang=en');
+  localStorage.setItem('web-printer-locale', 'en');
+
+  const originalFetch = global.fetch;
+  global.fetch = jest.fn().mockResolvedValue({
+    ok: true,
+    text: async () => '<section><p>Sample English text</p></section>',
+  });
+
+  try {
+    render(<WorkbenchPage />);
+    expect(await screen.findByRole('tab', { name: 'Purchase Order Table' }, { timeout: 4000 })).toBeInTheDocument();
+    const poRoot = document.getElementById('print-content6')!;
+    expect(within(poRoot).getByText('Store / Destination')).toBeInTheDocument();
+    expect(within(poRoot).getAllByText('Cold Beverage Paper Cup').length).toBeGreaterThan(0);
+
+    // Switch to Long Article
+    fireEvent.click(await screen.findByRole('tab', { name: 'Long Article' }));
+    const articleRoot = document.getElementById('print-content-long-article')!;
+    expect(within(articleRoot).getByRole('heading', { level: 1 })).toHaveTextContent('Making Time for Walking');
+    expect(articleRoot.querySelectorAll('p')).toHaveLength(25);
+
+    // Switch to Custom Header & Footer
+    fireEvent.click(await screen.findByRole('tab', { name: 'Custom Header & Footer' }));
+    const customRoot = document.getElementById('print-content-custom-header-footer')!;
+    expect(within(customRoot).getByRole('heading', { level: 1 })).toHaveTextContent('Hangzhou Client Onsite Implementation Travel Reimbursement');
+    expect(document.getElementById('print-header-custom')).toHaveTextContent('Hesheng Group');
+    expect(document.getElementById('print-footer-custom')).toHaveTextContent('Internal archival copy');
+
+    // Switch to Complex Mixed Layout
+    fireEvent.click(await screen.findByRole('tab', { name: 'Complex Mixed Layout' }));
+    const complexRoot = document.getElementById('print-content-complex-mixed')!;
+    expect(within(complexRoot).getByRole('heading', { level: 1 })).toHaveTextContent('Inverse Designing a Convex Accelerating Beam Trajectory with TorchOptics');
+    expect(await within(complexRoot).findByText('Sample English text')).toBeInTheDocument();
+    expect(global.fetch).toHaveBeenCalledWith('/demo-assets/torchoptics-article.en.html', expect.objectContaining({ signal: expect.any(AbortSignal) }));
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
 
 test('首页语言切换覆盖文案与元信息，并保留语言偏好和示例状态', () => {
   window.history.replaceState(null, '', '/');

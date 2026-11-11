@@ -37,9 +37,9 @@ export async function createPrintSession(options: LayoutOptions) {
   let disposed = false;
   let busy = false;
   const assertLive = () => {
-    if (disposed) throw new Error('打印会话已关闭，请重新生成预览');
+    if (disposed) throw new Error('Print session is closed, please recreate preview');
     checkCancelled(lifetime.signal);
-    if (busy) throw new Error('正在处理上一项任务，请稍候');
+    if (busy) throw new Error('Previous task is still in progress, please wait');
   };
   const preparedMs = performance.now() - started;
   return {
@@ -48,7 +48,7 @@ export async function createPrintSession(options: LayoutOptions) {
     async thumbnail(index: number, maxWidth = 480): Promise<string> {
       assertLive();
       if (!Number.isInteger(index) || index < 0 || index >= layout.pages.length)
-        throw new Error('预览页码无效');
+        throw new Error('Invalid preview page index');
       busy = true;
       let sheet: HTMLCanvasElement | undefined;
       let thumb: HTMLCanvasElement | undefined;
@@ -100,7 +100,7 @@ export async function createPrintSession(options: LayoutOptions) {
         thumb.width = Math.max(1, Math.min(640, maxWidth, sheet.width));
         thumb.height = Math.ceil((sheet.height * thumb.width) / sheet.width);
         const ctx = thumb.getContext('2d');
-        if (!ctx) throw new Error('浏览器无法生成预览');
+        if (!ctx) throw new Error('Browser failed to generate preview');
         ctx.drawImage(sheet, 0, 0, thumb.width, thumb.height);
         checkCancelled(lifetime.signal);
         return thumb.toDataURL('image/jpeg', 0.85);

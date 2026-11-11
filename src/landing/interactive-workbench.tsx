@@ -1,10 +1,13 @@
 import { useEffect } from 'react';
 import { DEMO_SCENES, PrintWorkbench } from '../demo';
+import { Locale, useLocale } from './locale';
 
-export default function InteractiveWorkbench() {
+export default function InteractiveWorkbench({ locale: propLocale }: { locale?: Locale }) {
+  const [activeLocale] = useLocale();
+  const locale = propLocale || activeLocale;
   const sceneKey = new URLSearchParams(window.location.hash.split('?')[1]).get('scene') || undefined;
 
-  // 窄屏下场景标签是横向滚动的，切换后把当前场景滚到可见位置。
+  // On narrow screens, scene tabs scroll horizontally; scroll active tab into view after switching
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       document.querySelector('.print-tab-custom .ant-tabs-tab-active')
@@ -13,5 +16,5 @@ export default function InteractiveWorkbench() {
     return () => window.cancelAnimationFrame(frame);
   }, [sceneKey]);
 
-  return <PrintWorkbench key={sceneKey} scenes={DEMO_SCENES} initialSceneKey={sceneKey} />;
+  return <PrintWorkbench key={`${sceneKey || ''}-${locale}`} scenes={DEMO_SCENES} initialSceneKey={sceneKey} locale={locale} />;
 }

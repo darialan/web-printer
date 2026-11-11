@@ -22,7 +22,10 @@ jest.mock('@darialan/web-printer', () => ({
 jest.mock('./preview/print-preview-modal', () => ({ buildHtmlPreviewData: jest.fn() }));
 jest.mock('./debug-panel/print-toolbar', () => ({
   PrintObservabilityBanner: () => <div>标记统计</div>,
-  PrintToolbarActions: ({ debugActive, onToggleDebug }: any) => <button onClick={onToggleDebug}>{debugActive ? '退出检查' : '检查分页'}</button>,
+  PrintToolbarActions: ({ debugActive, onToggleDebug, previewOpen, onTogglePreview }: any) => <>
+    <button onClick={onToggleDebug}>{debugActive ? '退出检查' : '检查分页'}</button>
+    <button onClick={onTogglePreview}>{previewOpen ? '关闭预览' : '打开预览'}</button>
+  </>,
 }));
 jest.mock('antd', () => {
   const actual = jest.requireActual('antd');
@@ -45,6 +48,7 @@ function setup() {
     { key: 'b', label: '场景二', contentId: 'source-b', children: <div id="source-b"><p>源页面二</p></div> },
   ]} />);
   fireEvent.click(screen.getByRole('button', { name: '检查分页' }));
+  fireEvent.click(screen.getByRole('button', { name: '打开预览' }));
 }
 function deferred() {
   let resolve!: (value: any) => void;
@@ -52,6 +56,7 @@ function deferred() {
   return { promise, resolve };
 }
 beforeEach(() => {
+  localStorage.setItem('web-printer-locale', 'zh');
   jest.clearAllMocks();
   (visualizePageBreaks as jest.Mock).mockImplementation((_pages, root) => {
     const marker = document.createElement('span');
@@ -96,7 +101,7 @@ test('预览渲染异常只影响小窗', async () => {
   log.mockRestore();
 });
 
-test.each(['关闭预览小窗', '退出检查', '场景二'])('等待期间%s，迟到的预览不重新打开', async action => {
+test.each(['关闭预览小窗', '关闭预览', '场景二'])('等待期间%s，迟到的预览不重新打开', async action => {
   const pending = deferred();
   (buildHtmlPreviewData as jest.Mock).mockReturnValue(pending.promise);
   setup();
@@ -106,11 +111,11 @@ test.each(['关闭预览小窗', '退出检查', '场景二'])('等待期间%s�
   pending.resolve(data);
   await waitFor(() => expect(screen.queryByText('计算分页中…')).not.toBeInTheDocument());
   expect(screen.queryByText('预览正文')).not.toBeInTheDocument();
-  if (action === '关闭预览小窗') expect(screen.getByText('页面标记')).toBeInTheDocument();
+  if (action === '关闭预览小窗' || action === '关闭预览') expect(screen.getByText('页面标记')).toBeInTheDocument();
   else expect(screen.queryByText('页面标记')).not.toBeInTheDocument();
 });
 
-test('关闭检查会主动取消尚未完成的预览任务', async () => {
+test('关闭预览会主动取消尚未完成的预览任务', async () => {
   let signal: AbortSignal | undefined;
   (buildHtmlPreviewData as jest.Mock).mockImplementation(options => {
     signal = options.signal;
@@ -118,7 +123,7 @@ test('关闭检查会主动取消尚未完成的预览任务', async () => {
   });
   setup();
   await waitFor(() => expect(signal).toBeDefined());
-  fireEvent.click(screen.getByRole('button', { name: '退出检查' }));
+  fireEvent.click(screen.getByRole('button', { name: '关闭预览' }));
   expect(signal!.aborted).toBe(true);
   await waitFor(() => expect(screen.queryByText('计算分页中…')).not.toBeInTheDocument());
   expect(screen.queryByText(/纸张预览失败/)).not.toBeInTheDocument();
@@ -131,8 +136,21 @@ test('卸载工作台会取消预览并且不会重新插入结果', async () =>
     return new Promise((_resolve, reject) => signal!.addEventListener('abort', () => reject(new Error('取消')), { once: true }));
   });
   const { unmount } = render(<PrintWorkbench scenes={[{ key: 'a', label: 'test', contentId: 'source', children: <div id="source" /> }]} />);
-  fireEvent.click(screen.getByRole('button', { name: '检查分页' }));
+  fireEvent.click(screen.getByRole('button', { name: '打开预览' }));
   await waitFor(() => expect(signal).toBeDefined());
   unmount();
   expect(signal!.aborted).toBe(true);
 });
+
+test('English mode: switches labels to English', async () => {
+  render(
+    <PrintWorkbench
+      locale="en"
+      scenes={[
+        { key: 'purchase-order', label: '长表格', contentId: 'source-po', children: <div id="source-po">Table</div> },
+      ]}
+    />
+  );
+  expect(screen.getByRole('button', { name: 'Purchase Order Table' })).toBeInTheDocument();
+});
+

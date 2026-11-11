@@ -74,11 +74,11 @@ test('failed PNG encoding and cancellation free canvases and do not produce a do
     (callback) => callback(null),
   );
   await expect(writer.addPageSlice(0, canvas, 100)).rejects.toThrow(
-    '图片编码失败',
+    'Image encoding failed',
   );
   expect(sheets[0].width).toBe(0);
   abort.abort();
-  await expect(writer.finalize('test')).rejects.toThrow('取消');
+  await expect(writer.finalize('test')).rejects.toThrow('cancelled');
 });
 
 test('disabled page numbers are omitted, including for landscape paper', async () => {
@@ -113,10 +113,10 @@ test('encoded byte budget stops growth before retaining another image', async ()
   body.width = 800;
   const writer = createImageWriter({ geometry, totalPages: 2, maxBytes: 3 });
   await writer.addPageSlice(0, body, 100);
-  await expect(writer.addPageSlice(1, body, 100)).rejects.toThrow('内存预算');
+  await expect(writer.addPageSlice(1, body, 100)).rejects.toThrow('memory budget');
   expect(sheets.every((canvas) => canvas.width === 0)).toBe(true);
   writer.dispose?.();
   expect(() =>
     createImageWriter({ geometry, totalPages: 1, maxBytes: NaN }),
-  ).toThrow('预算');
+  ).toThrow('budget');
 });

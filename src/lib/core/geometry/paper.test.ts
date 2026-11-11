@@ -26,9 +26,9 @@ test('paper height and margins affect the same capacity used by pagination', () 
 });
 
 test('invalid custom dimensions and margins are rejected before rendering', () => {
-  expect(() => resolvePaper({ ...DEFAULT_SETTINGS, paper: 'custom', widthMm: NaN })).toThrow('宽高');
-  expect(() => resolvePaper({ ...DEFAULT_SETTINGS, marginTopMm: -1 })).toThrow('页边距');
-  expect(() => resolvePaper({ ...DEFAULT_SETTINGS, marginLeftMm: 210 })).toThrow('占满');
+  expect(() => resolvePaper({ ...DEFAULT_SETTINGS, paper: 'custom', widthMm: NaN })).toThrow('positive');
+  expect(() => resolvePaper({ ...DEFAULT_SETTINGS, marginTopMm: -1 })).toThrow('margins');
+  expect(() => resolvePaper({ ...DEFAULT_SETTINGS, marginLeftMm: 210 })).toThrow('exceed');
 });
 
 test('preserves custom width/height order', () => {
@@ -49,7 +49,7 @@ test('unit switching round-trips without changing the physical page', () => {
 });
 
 test('paper presets provide fixed dimensions and margins according to orientation and unit', () => {
-  // A4 纵向与横向
+  // A4 portrait and landscape
   const a4Portrait = getPresetDimensions('a4', 'portrait', 'mm');
   expect(a4Portrait).toEqual({
     width: 210,

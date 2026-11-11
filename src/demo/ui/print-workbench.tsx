@@ -9,6 +9,7 @@ import { ReactNode, useEffect, useRef, useState } from 'react';
 import { PrintObservabilityBanner, PrintToolbarActions } from './debug-panel/print-toolbar';
 import { buildHtmlPreviewData, HtmlPreviewData } from './preview/print-preview-modal';
 import { MiniPrintPreview, MiniPreviewBoundary } from './preview/mini-print-preview';
+import { demoCopy, Locale, useLocale } from './locale';
 import './debug-panel/print-toolbar.css';
 
 export interface PrintSceneItem {
@@ -20,16 +21,28 @@ export interface PrintSceneItem {
   children: ReactNode;
 }
 
-function resolveWorkbenchElement(contentId: string): HTMLElement {
+function resolveWorkbenchElement(contentId: string, copy: typeof demoCopy.zh): HTMLElement {
   const element = resolvePrintElement(document.getElementById(contentId));
-  if (!element) throw new Error('未找到打印内容，请重新打开此场景');
-  if (element.dataset.printStatus === 'loading') throw new Error('内容正在加载，请加载完成后重试');
-  if (element.dataset.printStatus === 'error') throw new Error('内容加载失败，请先重试加载');
+  if (!element) throw new Error(copy.elementNotFound);
+  if (element.dataset.printStatus === 'loading') throw new Error(copy.contentLoading);
+  if (element.dataset.printStatus === 'error') throw new Error(copy.contentError);
   return element;
 }
 const errorText = (error: unknown) => error instanceof Error ? error.message : String(error);
 
-export function PrintWorkbench({ scenes, initialSceneKey }: { scenes: PrintSceneItem[]; initialSceneKey?: string }) {
+export function PrintWorkbench({
+  scenes,
+  initialSceneKey,
+  locale: propLocale,
+}: {
+  scenes: PrintSceneItem[];
+  initialSceneKey?: string;
+  locale?: Locale;
+}) {
+  const [activeLocale] = useLocale();
+  const locale = propLocale || activeLocale;
+  const copy = demoCopy[locale];
+
   const [tab, setTab] = useState(() => scenes.find(scene => scene.key === initialSceneKey)?.key || scenes[0]?.key || '');
   const [settings, setSettings] = useState<PrintSettings>(DEFAULT_SETTINGS);
   const [outputFormat, setOutputFormat] = useState<OutputFormat>('pdf');
@@ -46,7 +59,8 @@ export function PrintWorkbench({ scenes, initialSceneKey }: { scenes: PrintScene
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewAttempt, setPreviewAttempt] = useState(0);
-  // 用 hook 版 message，toast 才会继承 AntD 主题（静态方法固定用默认蓝色）
+
+  // Hook-based message ensures toast inherits Ant Design theme colors
   const [messageApi, messageHolder] = message.useMessage();
   const workbenchRoot = useRef<HTMLDivElement>(null);
   const inspectionRun = useRef(0);
@@ -162,7 +176,7 @@ export function PrintWorkbench({ scenes, initialSceneKey }: { scenes: PrintScene
       if (abort.signal.aborted || run !== inspectionRun.current) return;
       try {
         const data = await buildHtmlPreviewData({
-          contentElement: resolveWorkbenchElement(currentScene.contentId),
+          contentElement: resolveWorkbenchElement(currentScene.contentId, copy),
           header: currentScene.headerId ? document.getElementById(currentScene.headerId) : null,
           footer: currentScene.footerId ? document.getElementById(currentScene.footerId) : null,
           settings, filename: currentScene.label || 'document', signal: abort.signal,
@@ -180,7 +194,7 @@ export function PrintWorkbench({ scenes, initialSceneKey }: { scenes: PrintScene
     setMarkError(null);
     try {
       const started = performance.now();
-      const el = resolveWorkbenchElement(currentScene.contentId);
+      const el = resolveWorkbenchElement(currentScene.contentId, copy);
       debugRoot.current = el;
       const width = el.getBoundingClientRect().width;
       const header = currentScene.headerId ? document.getElementById(currentScene.headerId) : null;
@@ -203,12 +217,27 @@ export function PrintWorkbench({ scenes, initialSceneKey }: { scenes: PrintScene
       setMarkError(errorText(error));
     }
   };
-  const handleToggleDebug = () => {
-    if (debugActive) return handleCloseDebug();
-    if (!scene || busy.current) return;
-    setDebugActive(true);
-    markSource(scene);
-    loadPreview(scene);
+  const handleToggleBreaks = () => {
+    if (debugActive) {
+      if (debugRoot.current) clearPageBreaks(debugRoot.current);
+      debugRoot.current = null;
+      setDebugActive(false);
+      setInspection(null);
+      setStats(undefined);
+      setMarkError(null);
+    } else {
+      if (!scene || busy.current) return;
+      setDebugActive(true);
+      markSource(scene);
+    }
+  };
+  const handleTogglePreview = () => {
+    if (previewOpen) {
+      handleClosePreview();
+    } else {
+      if (!scene || busy.current) return;
+      loadPreview(scene);
+    }
   };
   const handleRetryPreview = () => { if (scene && !busy.current) loadPreview(scene); };
   const handleClosePreview = () => { stopPreview(); setPreviewLoading(false); setPreviewOpen(false); };
@@ -218,29 +247,29 @@ export function PrintWorkbench({ scenes, initialSceneKey }: { scenes: PrintScene
     busy.current = true;
     setExporting(true);
     setExportError(null);
-    setProgress('正在准备内容…');
+    setProgress(copy.preparingContent);
     // Reclaim any in-flight preview snapshot before exporting the same root.
     stopPreview();
     setPreviewLoading(false);
     if (!miniPreviewData) setPreviewOpen(false);
     const abort = new AbortController();
     controller.current = abort;
-    const outputLabel = outputFormat === 'pdf' ? 'PDF' : 'PNG 图片';
-    const hideLoading = messageApi.loading(`正在生成 ${outputLabel}…`, 0);
+    const outputLabel = outputFormat === 'pdf' ? (locale === 'zh' ? 'PDF' : 'PDF') : (locale === 'zh' ? 'PNG 图片' : 'PNG images');
+    const hideLoading = messageApi.loading(locale === 'zh' ? `正在生成 ${outputLabel}…` : `Generating ${outputLabel}…`, 0);
     try {
       await previewTask.current;
       if (abort.signal.aborted) return;
       const result = await outputDocument({
         format: outputFormat,
-        element: resolveWorkbenchElement(scene.contentId),
+        element: resolveWorkbenchElement(scene.contentId, copy),
         header: scene.headerId ? document.getElementById(scene.headerId) : null,
         footer: scene.footerId ? document.getElementById(scene.footerId) : null,
         settings, signal: abort.signal, filename: scene.label || 'document',
         onProgress: (completed, total) => {
-          if (mounted.current) setProgress(`正在生成 ${outputLabel}：${completed} / ${total} 页`);
+          if (mounted.current) setProgress(copy.generating(outputLabel, completed, total));
         },
       });
-      if (mounted.current) messageApi.success(`已导出 ${result.pages} 页 ${outputLabel}，用时 ${(result.totalMs / 1000).toFixed(1)} 秒`);
+      if (mounted.current) messageApi.success(copy.exportSuccess(result.pages, outputLabel, (result.totalMs / 1000).toFixed(1)));
     } catch (error) {
       if (mounted.current && !abort.signal.aborted) setExportError(errorText(error));
     } finally {
@@ -255,30 +284,39 @@ export function PrintWorkbench({ scenes, initialSceneKey }: { scenes: PrintScene
     {messageHolder}
     <div className="print-console-card">
       <Tabs className="print-tab-custom" activeKey={tab}
-        items={scenes.map(({ key, label, children }) => ({ key, label, disabled: exporting, children: <div>
-          {key === tab && debugActive && markError && <Alert type="error" showIcon message={`页面标记失败：${markError}`}
-            action={<Button size="small" onClick={() => scene && markSource(scene)}>重试标记</Button>} />}
-          {key === tab && debugActive && <PrintObservabilityBanner inspection={inspection} stats={stats} />}
-          {key === tab && exportError && <Alert className="print-export-error" type="error" showIcon message={`导出失败：${exportError}`}
-            action={<Button size="small" onClick={handleExport} disabled={exporting}>重试导出</Button>} closable onClose={() => setExportError(null)} />}
-          <div className="print-scene-content" data-exporting={exporting} aria-busy={!ready || exporting}
-            onChangeCapture={() => { if (debugActive) handleCloseDebug(); }}
-            onClickCapture={event => { if (debugActive && (event.target as Element).closest('button, .ant-select')) handleCloseDebug(); }}>
-            {children}
-          </div>
-        </div> }))}
+        items={scenes.map(({ key, label, children }) => {
+          const tabLabel = copy.scenes[key as keyof typeof copy.scenes] || label;
+          return {
+            key,
+            label: tabLabel,
+            disabled: exporting,
+            children: <div>
+              {key === tab && debugActive && markError && <Alert type="error" showIcon message={`${copy.markError}${markError}`}
+                action={<Button size="small" onClick={() => scene && markSource(scene)}>{copy.retryMark}</Button>} />}
+              {key === tab && debugActive && <PrintObservabilityBanner inspection={inspection} stats={stats} onClose={handleToggleBreaks} locale={locale} />}
+              {key === tab && exportError && <Alert className="print-export-error" type="error" showIcon message={`${copy.exportError}${exportError}`}
+                action={<Button size="small" onClick={handleExport} disabled={exporting}>{copy.retryExport}</Button>} closable onClose={() => setExportError(null)} />}
+              <div className="print-scene-content" data-exporting={exporting} aria-busy={!ready || exporting}
+                onChangeCapture={() => { if (debugActive) handleCloseDebug(); }}
+                onClickCapture={event => { if (debugActive && (event.target as Element).closest('button, .ant-select')) handleCloseDebug(); }}>
+                {children}
+              </div>
+            </div>,
+          };
+        })}
         onChange={handleTabChange}
         tabBarExtraContent={<PrintToolbarActions loading={exporting} exporting={exporting} ready={ready}
           outputFormat={outputFormat} onOutputFormatChange={next => { setOutputFormat(next); setExportError(null); }}
           progress={progress} settings={settings} debugActive={debugActive} previewOpen={previewOpen}
-          onOpenPreview={handleRetryPreview} onExport={handleExport} onToggleDebug={handleToggleDebug}
+          onOpenPreview={handleTogglePreview} onTogglePreview={handleTogglePreview} onExport={handleExport} onToggleDebug={handleToggleBreaks}
           onCancelExport={() => controller.current?.abort()}
-          onSettingsChange={next => { setSettings(next); setExportError(null); handleCloseDebug(); }} />}
+          onSettingsChange={next => { setSettings(next); setExportError(null); handleCloseDebug(); }}
+          locale={locale} />}
       />
     </div>
-    {debugActive && previewOpen && <MiniPreviewBoundary key={previewAttempt} onRetry={handleRetryPreview} onClose={handleClosePreview}>
+    {previewOpen && <MiniPreviewBoundary key={previewAttempt} onRetry={handleRetryPreview} onClose={handleClosePreview}>
       <MiniPrintPreview data={miniPreviewData} loading={previewLoading} error={previewError}
-        onRetry={handleRetryPreview} onClose={handleClosePreview} />
+        onRetry={handleRetryPreview} onClose={handleClosePreview} locale={locale} />
     </MiniPreviewBoundary>}
   </div>;
 }

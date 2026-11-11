@@ -14,7 +14,7 @@ export function readRootHeight(root: HTMLElement): number {
     ? root.getBoundingClientRect().height
     : Math.max(root.getBoundingClientRect().height, root.scrollHeight);
   if (!Number.isFinite(height) || height <= 0 || height > 200000) {
-    throw new Error('打印区域为空或超过 200,000px 高度限制');
+    throw new Error('Print container is empty or exceeds 200,000px height limit');
   }
   return height;
 }
@@ -81,7 +81,7 @@ export function measureDocument(
     add({ top: rect.top - bounds.top, bottom: rect.bottom - bounds.top });
   };
   const rootRule = classifyPrintNode(root, rules);
-  if (isDisplaySuppressed(root)) throw new Error('打印区域不可见');
+  if (isDisplaySuppressed(root)) throw new Error('Print container is not visible');
   if (rootRule?.kind === 'atomic' && isPaintVisible(root)) {
     assertAtomicFits(rootRule, height, capacity, readLabel(root));
     protectWhole({ top: bounds.top, bottom: bounds.top + height });

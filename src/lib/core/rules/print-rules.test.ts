@@ -15,22 +15,22 @@ afterEach(() => {
   resetPrintRules();
 });
 
-test('基础层技术无关且仅使用原生标准协议与标签', () => {
-  // 原生 tr 明确属于 splittable；表格行另有整块优先保护策略
+test('base layer is tech-agnostic and uses standard protocols and tags only', () => {
+  // Native tr belongs to splittable; table rows have whole-block protection strategy
   const tr = document.createElement('tr');
   expect(classifyPrintNode(tr)).toEqual({ kind: 'splittable' });
   expect(tr.matches(BASE_SPLITTABLE_SELECTOR)).toBe(true);
 
-  // 原生图片和标题受保护
+  // Native images and headings are protected
   const img = document.createElement('img');
   expect(classifyPrintNode(img)).toMatchObject({ kind: 'atomic' });
 
-  // 基础规则绝不硬编码第三方组件库类名；未配置的组件行仍归为 splittable
+  // Base rules never hardcode third-party component class names; unconfigured component rows remain splittable
   const antRow = document.createElement('div');
   antRow.className = 'ant-table-row';
   expect(classifyPrintNode(antRow)).toEqual({ kind: 'splittable' });
 
-  // 基础规则选择器中不应包含任何第三方组件库特定前缀
+  // Base rules do not contain component library prefixes
   BASE_PRINT_RULES.forEach(rule => {
     expect(rule.selector).not.toContain('ant-');
     expect(rule.selector).not.toContain('el-');
@@ -38,7 +38,7 @@ test('基础层技术无关且仅使用原生标准协议与标签', () => {
 });
 
 test('classifies elements as atomic or splittable and recognizes protocol selectors', () => {
-  // 1. 不可分割 (Atomic)
+  // 1. Atomic
   const elAtomicAttr = document.createElement('div');
   elAtomicAttr.setAttribute('data-print-atomic', 'true');
   expect(classifyPrintNode(elAtomicAttr)).toMatchObject({ kind: 'atomic' });
@@ -47,18 +47,18 @@ test('classifies elements as atomic or splittable and recognizes protocol select
   elAtomicClass.className = PRINT_CLASSES.ATOMIC;
   expect(classifyPrintNode(elAtomicClass)).toMatchObject({ kind: 'atomic' });
 
-  // 兼容别名：keep-together="true" 等价于 atomic
+  // Compatibility alias: keep-together="true" is equivalent to atomic
   const elKeepAttr = document.createElement('div');
   elKeepAttr.setAttribute('data-print-keep-together', 'true');
   expect(classifyPrintNode(elKeepAttr)).toMatchObject({ kind: 'atomic' });
 
-  // 旧 keep-together="split" 标记仍命中整块优先保护策略
+  // Legacy keep-together="split" matches whole-block protection strategy
   const elSplitAttr = document.createElement('div');
   elSplitAttr.setAttribute('data-print-keep-together', 'split');
   expect(classifyPrintNode(elSplitAttr)).toEqual({ kind: 'splittable' });
   expect(elSplitAttr.matches(BASE_SPLITTABLE_SELECTOR)).toBe(true);
 
-  // splittable 标记同样明确归类为 splittable
+  // splittable attribute is classified as splittable
   const elSplittableAttr = document.createElement('div');
   elSplittableAttr.setAttribute('data-print-splittable', 'true');
   expect(classifyPrintNode(elSplittableAttr)).toEqual({ kind: 'splittable' });
@@ -69,12 +69,12 @@ test('classifies elements as atomic or splittable and recognizes protocol select
   expect(classifyPrintNode(elSplittableClass)).toEqual({ kind: 'splittable' });
   expect(elSplittableClass.matches(BASE_SPLITTABLE_SELECTOR)).toBe(true);
 
-  // force-split 不再影响分类；未命中其他规则时仍是 splittable
+  // force-split no longer affects classification; remains splittable
   const elBreakAttr = document.createElement('div');
   elBreakAttr.setAttribute('data-print-break', 'split');
   expect(classifyPrintNode(elBreakAttr)).toEqual({ kind: 'splittable' });
 
-  // 3. 忽略打印 (Ignore)
+  // 3. Ignore
   const elIgnoreAttr = document.createElement('div');
   elIgnoreAttr.setAttribute('data-print-ignore', 'true');
   expect(classifyPrintNode(elIgnoreAttr)).toEqual({ kind: 'splittable' });
@@ -84,23 +84,23 @@ test('classifies elements as atomic or splittable and recognizes protocol select
   expect(classifyPrintNode(elIgnoreClass)).toEqual({ kind: 'splittable' });
 });
 
-test('业务方通过 configurePrint 统一注册组件库类名', () => {
+test('consumers register component library classes via configurePrint', () => {
   const antRow = document.createElement('div');
   antRow.className = 'ant-table-row';
 
   const elRow = document.createElement('div');
   elRow.className = 'el-table__row';
 
-  // 配置前默认允许递归分析
+  // Before configuration, allows recursive analysis
   expect(classifyPrintNode(antRow)).toEqual({ kind: 'splittable' });
   expect(classifyPrintNode(elRow)).toEqual({ kind: 'splittable' });
 
-  // 业务层统一配置组件库选择器
+  // Register custom component selectors
   configurePrint({
     atomic: ['.ant-table-row', '.el-table__row', '.my-sign-stamp'],
   });
 
-  // 配置后自动按对应规则生效
+  // After configuration, rules take effect
   expect(classifyPrintNode(antRow)).toMatchObject({ kind: 'atomic' });
   expect(classifyPrintNode(elRow)).toMatchObject({ kind: 'atomic' });
 
@@ -108,12 +108,12 @@ test('业务方通过 configurePrint 统一注册组件库类名', () => {
   stamp.className = 'my-sign-stamp';
   expect(classifyPrintNode(stamp)).toMatchObject({ kind: 'atomic' });
 
-  // 重置后恢复纯原生
+  // Restores base defaults after reset
   resetPrintRules();
   expect(classifyPrintNode(antRow)).toEqual({ kind: 'splittable' });
 });
 
-test('buildPrintRules 支持独立构造规则列表，不污染全局状态', () => {
+test('buildPrintRules supports creating independent rule lists without polluting global state', () => {
   const localRules = buildPrintRules({
     atomic: ['.isolated-widget'],
   });
@@ -125,17 +125,17 @@ test('buildPrintRules 支持独立构造规则列表，不污染全局状态', (
   expect(classifyPrintNode(node)).toEqual({ kind: 'splittable' });
 });
 
-test('assertAtomicFits 严格报错，resolveSplittable 允许超高降级递归', () => {
+test('assertAtomicFits throws on overflow, resolveSplittable allows recursive descent', () => {
   const strict = classifyPrintNode(
     Object.assign(document.createElement('div'), { className: 'group' }),
     buildPrintRules({ atomic: ['.group'] })
   );
   expect(strict).toMatchObject({ kind: 'atomic' });
-  expect(() => assertAtomicFits(strict as any, 600, 500)).toThrow('超过');
-  // atomic 不再提供降级路径：永远只有"放得下"或"报错"两种结果
+  expect(() => assertAtomicFits(strict as any, 600, 500)).toThrow('exceeds');
+  // atomic does not offer fallback: only fits or throws
   expect(() => assertAtomicFits(strict as any, 400, 500)).not.toThrow();
 
-  // 整块优先保护策略永远不报错，只回答整体保护还是递归
+  // whole-block protection never throws, only decides whole or recursive
   expect(resolveSplittable(600, 500)).toBe('descend');
   expect(resolveSplittable(400, 500)).toBe('protect');
 });
@@ -190,8 +190,8 @@ test('preset semantics classify flow elements as splittable, protect media and c
 
 test('removed ignore config and JavaScript custom rules fail closed without replacing global configuration', () => {
   configurePrint({ atomic: ['.existing'] });
-  expect(() => configurePrint({ ignore: [] } as any)).toThrow('ignore 已移除');
-  expect(() => buildPrintRules({ customRules: [{ selector: '*', result: { kind: 'ignore' } }] } as any)).toThrow('ignore 元素分类已移除');
+  expect(() => configurePrint({ ignore: [] } as any)).toThrow('ignore has been removed');
+  expect(() => buildPrintRules({ customRules: [{ selector: '*', result: { kind: 'ignore' } }] } as any)).toThrow('ignore" element classification has been removed');
   const el = document.createElement('div'); el.className = 'existing';
   expect(classifyPrintNode(el)).toMatchObject({ kind: 'atomic' });
 });

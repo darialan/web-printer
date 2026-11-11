@@ -19,7 +19,8 @@ const scenes = [
 ] as const;
 
 const codeExamples = {
-  JavaScript: `import { outputDocument } from '@darialan/web-printer';
+  zh: {
+    JavaScript: `import { outputDocument } from '@darialan/web-printer';
 
 const element = document.getElementById('report');
 if (!element) throw new Error('Report not found');
@@ -38,7 +39,7 @@ await outputDocument({
     console.log(\`导出进度: \${completed}/\${total} 页\`);
   },
 });`,
-  React: `import { useRef } from 'react';
+    React: `import { useRef } from 'react';
 import { useWebPrinter } from '@darialan/web-printer/react';
 
 export function InvoiceReport() {
@@ -58,7 +59,7 @@ export function InvoiceReport() {
             })
           }
         >
-          {isExporting ? \`导出中 (\${progress.completed}/\${progress.total})\` : '>Export<'}
+          {isExporting ? \`导出中 (\${progress.completed}/\${progress.total})\` : '导出'}
         </button>
         {isExporting && <button onClick={cancel}>取消</button>}
       </div>
@@ -68,12 +69,100 @@ export function InvoiceReport() {
         <div data-print-atomic="true">
           <h3>企业盖章与签名区</h3>
         </div>
+        <div>你的业务内容</div>
+      </div>
+    </div>
+  );
+}`,
+    Vue: `<script setup>
+import { ref } from 'vue';
+import { outputDocument } from '@darialan/web-printer';
+
+const reportRef = ref(null);
+const isExporting = ref(false);
+
+async function exportReport() {
+  if (!reportRef.value || isExporting.value) return;
+  isExporting.value = true;
+  try {
+    await outputDocument({
+      element: reportRef.value,
+      filename: 'report',
+      format: 'pdf',
+    });
+  } finally {
+    isExporting.value = false;
+  }
+}
+</script>
+
+<template>
+  <button :disabled="isExporting" @click="exportReport">导出 PDF</button>
+  <div ref="reportRef">
+    <!-- 带有原子保护标记的签名或卡片 -->
+    <div data-print-atomic="true">
+      <p>不可分割业务卡片</p>
+    </div>
+    <div>你的业务内容</div>
+  </div>
+</template>`,
+  },
+  en: {
+    JavaScript: `import { outputDocument } from '@darialan/web-printer';
+
+const element = document.getElementById('report');
+if (!element) throw new Error('Report not found');
+
+// Automatically measures DOM geometry and exports paginated PDF
+await outputDocument({
+  element,
+  filename: 'report',
+  format: 'pdf', // or 'png' (multipage PNG zipped)
+  settings: {
+    paper: 'a4',
+    marginTopMm: 12,
+    marginBottomMm: 12,
+  },
+  onProgress: (completed, total) => {
+    console.log(\`Export progress: \${completed}/\${total} pages\`);
+  },
+});`,
+    React: `import { useRef } from 'react';
+import { useWebPrinter } from '@darialan/web-printer/react';
+
+export function InvoiceReport() {
+  const reportRef = useRef<HTMLDivElement>(null);
+  const { exportDocument, isExporting, progress, cancel } = useWebPrinter();
+
+  return (
+    <div>
+      <div className="toolbar">
+        <button
+          disabled={isExporting}
+          onClick={() =>
+            exportDocument({
+              element: reportRef.current,
+              filename: 'report',
+              format: 'png', // Multipage PNG zipped automatically
+            })
+          }
+        >
+          {isExporting ? \`Exporting (\${progress.completed}/\${progress.total})\` : 'Export'}
+        </button>
+        {isExporting && <button onClick={cancel}>Cancel</button>}
+      </div>
+
+      <div ref={reportRef}>
+        {/* Declarative mark: protect signature/stamps from mid-element splitting */}
+        <div data-print-atomic="true">
+          <h3>Corporate Stamp & Signature</h3>
+        </div>
         <div>Your content</div>
       </div>
     </div>
   );
 }`,
-  Vue: `<script setup>
+    Vue: `<script setup>
 import { ref } from 'vue';
 import { outputDocument } from '@darialan/web-printer';
 
@@ -98,17 +187,18 @@ async function exportReport() {
 <template>
   <button :disabled="isExporting" @click="exportReport">Export PDF</button>
   <div ref="reportRef">
-    <!-- 带有原子保护标记的签名或卡片 -->
+    <!-- Atomic protection mark for signatures or cards -->
     <div data-print-atomic="true">
-      <p>不可分割业务卡片</p>
+      <p>Indivisible Business Card</p>
     </div>
     <div>Your content</div>
   </div>
 </template>`,
+  },
 };
 
-type CodeTab = keyof typeof codeExamples;
-const codeTabs = Object.keys(codeExamples) as CodeTab[];
+type CodeTab = keyof typeof codeExamples['zh'];
+const codeTabs = Object.keys(codeExamples.zh) as CodeTab[];
 
 function CopyButton({ text, label, locale }: { text: string; label: string; locale: Locale }) {
   const t = copy[locale];
@@ -171,12 +261,7 @@ export function LandingPage() {
     document.getElementById(`code-tab-${next}`)?.focus();
   }
 
-  const currentCode = locale === 'zh'
-    ? codeExamples[codeTab]
-        .replaceAll('Your content', '你的业务内容')
-        .replaceAll('Export PDF', '导出 PDF')
-        .replaceAll('>Export<', '>导出<')
-    : codeExamples[codeTab];
+  const currentCode = codeExamples[locale][codeTab];
 
   return <div className="landing-page site-page" ref={pageRef} data-locale={locale}>
     <a className="skip-link" href="#main">{t.skip}</a>

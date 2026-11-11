@@ -38,16 +38,16 @@ test('disposing while html2canvas is pending also releases the late canvas', asy
   const pending=renderer.capture(document.createElement('article'),0,1000);
   renderer.dispose();
   const canvas=document.createElement('canvas');canvas.width=800;canvas.height=1000;finish(canvas);
-  await expect(pending).rejects.toThrow('取消');expect(canvas.width).toBe(0);expect(canvas.height).toBe(0);
-  await expect(renderer.capture(document.createElement('article'),0,1000)).rejects.toThrow('取消');
+  await expect(pending).rejects.toThrow('cancelled');expect(canvas.width).toBe(0);expect(canvas.height).toBe(0);
+  await expect(renderer.capture(document.createElement('article'),0,1000)).rejects.toThrow('cancelled');
 });
 
 test('invalid geometry and removed legacy markers reject before invoking the renderer', async () => {
   (html2canvas as jest.Mock).mockClear();
   const renderer = createPageCapture(800);
-  await expect(renderer.capture(document.createElement('div'), 0, NaN)).rejects.toThrow('无效');
+  await expect(renderer.capture(document.createElement('div'), 0, NaN)).rejects.toThrow('invalid');
   const root = document.createElement('div'); root.className = 'pdf-ignore';
-  await expect(renderer.capture(root, 0, 100)).rejects.toThrow('检测到');
+  await expect(renderer.capture(root, 0, 100)).rejects.toThrow('Legacy ignore');
   expect(html2canvas).not.toHaveBeenCalled();
 });
 
@@ -74,7 +74,7 @@ test('abort before onclone frees the synchronously owned iframe and releases a l
   const controller=new AbortController();
   const pending=createPageCapture(800,controller.signal).capture(document.createElement('div'),0,100);
   controller.abort();
-  await expect(pending).rejects.toThrow('取消');
+  await expect(pending).rejects.toThrow('cancelled');
   expect(frame.isConnected).toBe(false);
   const canvas=document.createElement('canvas');canvas.width=100;canvas.height=100;finish(canvas);
   await Promise.resolve();
@@ -85,7 +85,7 @@ test('a never-settling renderer times out and releases its pre-onclone frame', a
   jest.useFakeTimers();
   const frame=document.createElement('iframe');frame.className='html2canvas-container';
   (html2canvas as jest.Mock).mockImplementationOnce(() => { document.body.append(frame);return new Promise(()=>{}); });
-  const pending=expect(createPageCapture(800).capture(document.createElement('div'),0,100)).rejects.toThrow('30 秒');
+  const pending=expect(createPageCapture(800).capture(document.createElement('div'),0,100)).rejects.toThrow('30-second');
   jest.advanceTimersByTime(30000);await pending;
   expect(frame.isConnected).toBe(false);
   jest.useRealTimers();

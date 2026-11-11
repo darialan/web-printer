@@ -41,7 +41,7 @@ export interface BuildHtmlPreviewOptions extends Omit<LayoutOptions, 'element'> 
 }
 
 /**
- * 极速计算虚拟纸张规范（基于物理标准与 96 DPI CSS 像素精确转换）
+ * Rapidly compute virtual paper geometry (physical standards converted to 96 DPI CSS pixels).
  */
 export function calculateHtmlPaperGeometry(
   settings: Partial<PrintSettings> | undefined,
@@ -138,7 +138,7 @@ export async function buildHtmlPreviewData(
     );
     const paper = resolvePaper(resolvedSettings);
     const factor = resolvedSettings.unit === 'px' ? PX_PER_MM : 1;
-    const paperLabel = `${resolvedSettings.paper === 'custom' ? '自定义' : resolvedSettings.paper.toUpperCase()} · ${Number((paper.widthMm * factor).toFixed(1))} × ${Number((paper.heightMm * factor).toFixed(1))} ${resolvedSettings.unit || 'mm'}`;
+    const paperLabel = `${resolvedSettings.paper === 'custom' ? 'Custom' : resolvedSettings.paper.toUpperCase()} · ${Number((paper.widthMm * factor).toFixed(1))} × ${Number((paper.heightMm * factor).toFixed(1))} ${resolvedSettings.unit || 'mm'}`;
     return {
       paperLabel,
       pages: layout.pages,

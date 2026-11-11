@@ -6,19 +6,64 @@ import {
   HtmlPreviewData,
 } from '../application/preview-data';
 
+export type PreviewLocale = 'en' | 'zh';
+
+export const PREVIEW_I18N = {
+  zh: {
+    ariaLabel: '纸张预览',
+    title: '📄 纸张预览',
+    zoomOut: '缩小预览',
+    zoomIn: '放大预览',
+    zoomResetTitle: '点击重置为 100% 适应大小',
+    zoomResetAria: '重置缩放',
+    collapse: '折叠小窗',
+    expand: '展开小窗',
+    fullscreen: '全屏预览',
+    exitFullscreen: '退出全屏 (Esc)',
+    close: '关闭预览小窗',
+    loading: '计算分页中…',
+    failed: (msg: string) => `纸张预览失败：${msg}`,
+    retry: '重试预览',
+    pagesCount: (n: number) => `${n} 页`,
+    pageIndex: (i: number, n: number) => `第 ${i} / ${n} 页`,
+    sliceHeight: (h: number) => ` · 切片高度 ${h}px`,
+  },
+  en: {
+    ariaLabel: 'Paper Preview',
+    title: '📄 Paper Preview',
+    zoomOut: 'Zoom out',
+    zoomIn: 'Zoom in',
+    zoomResetTitle: 'Click to reset zoom to 100%',
+    zoomResetAria: 'Reset zoom',
+    collapse: 'Collapse preview',
+    expand: 'Expand preview',
+    fullscreen: 'Fullscreen preview',
+    exitFullscreen: 'Exit fullscreen (Esc)',
+    close: 'Close preview window',
+    loading: 'Calculating page breaks…',
+    failed: (msg: string) => `Preview failed: ${msg}`,
+    retry: 'Retry preview',
+    pagesCount: (n: number) => `${n} page${n === 1 ? '' : 's'}`,
+    pageIndex: (i: number, n: number) => `Page ${i} of ${n}`,
+    sliceHeight: (h: number) => ` · Slice height ${h}px`,
+  },
+};
+
 export interface PreviewPrintOptions extends BuildHtmlPreviewOptions {
   /**
-   * 预览展示模式：
-   * - 'floating'（默认）：右下角暗色悬浮小窗，支持折叠、全屏切换、缩放控制与滚动懒加载
-   * - 'fullscreen'：直接以全屏模态框打开预览
-   * - 'inline'：挂载到指定的 container 容器内（传入 container 时默认生效）
+   * Preview display mode:
+   * - 'floating' (default): bottom-right floating dark window with minimize/fullscreen/zoom/lazy-load
+   * - 'fullscreen': opens directly as fullscreen modal
+   * - 'inline': mounts into the specified container element
    */
   mode?: 'floating' | 'fullscreen' | 'inline';
-  /** 可选：将预览渲染到指定 DOM 容器内；不传则默认挂载到 document.body 右下角浮窗 */
+  /** Optional container DOM element; defaults to document.body floating window */
   container?: HTMLElement | null;
-  /** 初始缩放比例（默认 1，即 100% 适应窗口宽度） */
+  /** Initial zoom ratio (default 1, i.e. 100% fit-to-width) */
   zoom?: number;
-  /** 关闭预览时的回调 */
+  /** Locale language for preview chrome: 'en' or 'zh' (auto-detected if omitted) */
+  locale?: PreviewLocale;
+  /** Callback when preview is closed */
   onClose?: () => void;
 }
 
@@ -31,16 +76,18 @@ export interface PrintPreviewController {
   close: () => void;
 }
 
-/** 预览视图的展示选项；不包含数据获取，供 React / Vue 等框架自己驱动数据。 */
+/** Preview view options (without data fetching, driven by React / Vue / Vanilla). */
 export interface PrintPreviewViewOptions {
   mode?: 'floating' | 'fullscreen' | 'inline';
   container?: HTMLElement | null;
   zoom?: number;
-  /** 通过关闭按钮或 closePrintPreview() 关闭时触发；dispose() 不触发 */
+  /** Locale language for preview chrome: 'en' or 'zh' (auto-detected if omitted) */
+  locale?: PreviewLocale;
+  /** Triggered when closed via button or closePrintPreview(); not triggered by dispose() */
   onClose?: () => void;
-  /** 是否显示关闭按钮，默认显示 */
+  /** Whether to show close button, defaults to true */
   closable?: boolean;
-  /** 视图被销毁（close 或 dispose）时触发，用于释放调用方的资源 */
+  /** Triggered when view is disposed */
   onDispose?: () => void;
   document?: Document;
 }
@@ -75,22 +122,26 @@ export function closePrintPreview(container?: HTMLElement) {
   }
 }
 
-/** 创建一个只负责渲染的纸张预览视图，并挂载到 container（默认 document.body 右下角浮窗）。 */
+/** Creates a rendering-only print preview view mounted to container (defaults to document.body floating window). */
 export function createPrintPreviewView(options: PrintPreviewViewOptions = {}): PrintPreviewView {
   const ownerDoc =
     options.document ||
     options.container?.ownerDocument ||
     (typeof document !== 'undefined' ? document : null);
   if (!ownerDoc || !ownerDoc.body) {
-    throw new Error('找不到有效的文档容器');
+    throw new Error('Valid document container not found');
   }
+
+  const activeLocale: PreviewLocale =
+    options.locale || (ownerDoc.documentElement.lang?.toLowerCase().startsWith('en') ? 'en' : 'zh');
+  const t = PREVIEW_I18N[activeLocale];
 
   ensurePreviewStyles(ownerDoc);
 
   const mountTarget = options.container || ownerDoc.body;
   const isInline = Boolean(options.container) || options.mode === 'inline';
 
-  // 关闭同一挂载容器上已有的预览实例，避免重复点击产生多个浮窗
+  // Close existing preview instance on same container
   closePrintPreview(mountTarget);
 
   const instanceId = ++instanceCounter;
@@ -107,7 +158,7 @@ export function createPrintPreviewView(options: PrintPreviewViewOptions = {}): P
   const observers: Array<{ disconnect: () => void }> = [];
   const sheetControllers: Array<() => void> = [];
 
-  // 根包裹层（带 data-print-debug 并在 debug-layers 注册，保证预览窗打开时导出/检查不会把预览窗当成业务内容）
+  // Root wrapper
   const host = ownerDoc.createElement('div');
   host.setAttribute('data-print-debug', 'true');
   host.setAttribute('data-print-preview-root', 'true');
@@ -124,7 +175,7 @@ export function createPrintPreviewView(options: PrintPreviewViewOptions = {}): P
 
   const widget = ownerDoc.createElement('div');
   widget.setAttribute('data-print-debug', 'true');
-  widget.setAttribute('aria-label', '纸张预览');
+  widget.setAttribute('aria-label', t.ariaLabel);
   widget.setAttribute('aria-busy', 'true');
   host.appendChild(widget);
 
@@ -136,7 +187,9 @@ export function createPrintPreviewView(options: PrintPreviewViewOptions = {}): P
   const titleWrap = ownerDoc.createElement('div');
   titleWrap.className = 'wp-preview-title-wrap';
   const titleText = ownerDoc.createElement('span');
-  titleText.textContent = '📄 纸张预览';
+  titleText.className = 'wp-preview-title-text';
+  titleText.style.display = 'none';
+  titleText.textContent = t.title;
   titleWrap.appendChild(titleText);
 
   const pageBadge = ownerDoc.createElement('span');
@@ -150,30 +203,31 @@ export function createPrintPreviewView(options: PrintPreviewViewOptions = {}): P
   actions.addEventListener('click', e => e.stopPropagation());
   header.appendChild(actions);
 
-  // 缩放控制组
+  // Zoom controls
   const zoomGroup = ownerDoc.createElement('div');
   zoomGroup.className = 'wp-preview-zoom-group';
+  zoomGroup.style.display = 'none';
 
-  const zoomOutBtn = createIconButton(ownerDoc, '缩小预览', '－', () => {
+  const zoomOutBtn = createIconButton(ownerDoc, t.zoomOut, '－', () => {
     setZoom(Number((zoomMultiplier - 0.1).toFixed(2)));
   });
   const zoomText = ownerDoc.createElement('button');
   zoomText.type = 'button';
   zoomText.className = 'wp-preview-zoom-label';
-  zoomText.title = '点击重置为 100% 适应大小';
-  zoomText.setAttribute('aria-label', '重置缩放');
+  zoomText.title = t.zoomResetTitle;
+  zoomText.setAttribute('aria-label', t.zoomResetAria);
   zoomText.textContent = `${Math.round(zoomMultiplier * 100)}%`;
   zoomText.addEventListener('click', () => setZoom('fit'));
 
-  const zoomInBtn = createIconButton(ownerDoc, '放大预览', '＋', () => {
+  const zoomInBtn = createIconButton(ownerDoc, t.zoomIn, '＋', () => {
     setZoom(Number((zoomMultiplier + 0.1).toFixed(2)));
   });
 
   zoomGroup.append(zoomOutBtn, zoomText, zoomInBtn);
   actions.appendChild(zoomGroup);
 
-  // 最小化按钮（仅浮窗模式展示）
-  const minimizeBtn = createIconButton(ownerDoc, '折叠小窗', getMinusSvg(), () => {
+  // Minimize button
+  const minimizeBtn = createIconButton(ownerDoc, t.collapse, getMinusSvg(), () => {
     if (fullscreen) fullscreen = false;
     setMinimized(!minimized);
   });
@@ -182,10 +236,10 @@ export function createPrintPreviewView(options: PrintPreviewViewOptions = {}): P
   }
   actions.appendChild(minimizeBtn);
 
-  // 全屏按钮
+  // Fullscreen button
   const fullscreenBtn = createIconButton(
     ownerDoc,
-    fullscreen ? '退出全屏 (Esc)' : '全屏预览',
+    fullscreen ? t.exitFullscreen : t.fullscreen,
     fullscreen ? getFullscreenExitSvg() : getFullscreenSvg(),
     () => {
       if (minimized) minimized = false;
@@ -194,8 +248,8 @@ export function createPrintPreviewView(options: PrintPreviewViewOptions = {}): P
   );
   actions.appendChild(fullscreenBtn);
 
-  // 关闭按钮
-  const closeBtn = createIconButton(ownerDoc, '关闭预览小窗', getCloseSvg(), () => {
+  // Close button
+  const closeBtn = createIconButton(ownerDoc, t.close, getCloseSvg(), () => {
     close();
   });
   actions.appendChild(closeBtn);
@@ -208,7 +262,7 @@ export function createPrintPreviewView(options: PrintPreviewViewOptions = {}): P
 
   function getEffectiveZoom(): number {
     const paperWidthPx = currentData?.geometry.paperWidthPx || 794;
-    let baseWidth = 232;
+    let baseWidth = 210;
     if (fullscreen) {
       baseWidth = Math.min(
         860,
@@ -239,29 +293,29 @@ export function createPrintPreviewView(options: PrintPreviewViewOptions = {}): P
     } else if (isInline) {
       widget.style.width = '100%';
     } else {
-      widget.style.width = minimized ? '244px' : '348px';
+      widget.style.width = minimized ? '180px' : '260px';
     }
 
     backdrop.style.display = fullscreen ? 'block' : 'none';
     body.style.display = !minimized || fullscreen ? 'flex' : 'none';
-    zoomGroup.style.display = !minimized || fullscreen ? 'inline-flex' : 'none';
+    zoomGroup.style.display = 'none';
 
     zoomText.textContent = `${Math.round(zoomMultiplier * 100)}%`;
     zoomOutBtn.disabled = zoomMultiplier <= 0.4;
     zoomInBtn.disabled = zoomMultiplier >= 2.5;
 
-    const minLabel = minimized ? '展开小窗' : '折叠小窗';
+    const minLabel = minimized ? t.expand : t.collapse;
     minimizeBtn.title = minLabel;
     minimizeBtn.setAttribute('aria-label', minLabel);
 
-    const fsLabel = fullscreen ? '退出全屏 (Esc)' : '全屏预览';
+    const fsLabel = fullscreen ? t.exitFullscreen : t.fullscreen;
     fullscreenBtn.title = fsLabel;
     fullscreenBtn.setAttribute('aria-label', fsLabel);
     fullscreenBtn.innerHTML = fullscreen ? getFullscreenExitSvg() : getFullscreenSvg();
 
     sheetControllers.forEach(updateSheet => updateSheet());
 
-    // 全屏是模态对话框：进入时把焦点移入小窗，退出后还给打开前的元素
+    // Fullscreen is a modal dialog: move focus inside on entry, restore on exit
     if (fullscreen && !wasFullscreen) {
       restoreFocus = ownerDoc!.activeElement as HTMLElement | null;
       widget.querySelector<HTMLElement>('button:not(:disabled)')?.focus();
@@ -291,6 +345,8 @@ export function createPrintPreviewView(options: PrintPreviewViewOptions = {}): P
 
   function renderLoadingState() {
     widget.setAttribute('aria-busy', 'true');
+    pageBadge.textContent = '...';
+    pageBadge.style.display = 'inline-block';
     body.innerHTML = '';
     const loadingBox = ownerDoc!.createElement('div');
     loadingBox.className = 'wp-preview-loading';
@@ -300,25 +356,27 @@ export function createPrintPreviewView(options: PrintPreviewViewOptions = {}): P
     spinner.setAttribute('aria-hidden', 'true');
     const text = ownerDoc!.createElement('span');
     text.style.marginLeft = '8px';
-    text.textContent = '计算分页中…';
+    text.textContent = t.loading;
     loadingBox.append(spinner, text);
     body.appendChild(loadingBox);
   }
 
   function renderErrorState(message: string, onRetry?: () => void) {
     widget.setAttribute('aria-busy', 'false');
+    pageBadge.textContent = '!';
+    pageBadge.style.display = 'inline-block';
     body.innerHTML = '';
     const alertBox = ownerDoc!.createElement('div');
     alertBox.setAttribute('role', 'alert');
     alertBox.className = 'wp-preview-error';
     const p = ownerDoc!.createElement('p');
-    p.textContent = `纸张预览失败：${message}`;
+    p.textContent = t.failed(message);
     alertBox.appendChild(p);
     if (onRetry) {
       const retryBtn = ownerDoc!.createElement('button');
       retryBtn.type = 'button';
       retryBtn.className = 'wp-preview-retry-btn';
-      retryBtn.textContent = '重试预览';
+      retryBtn.textContent = t.retry;
       retryBtn.addEventListener('click', onRetry);
       alertBox.appendChild(retryBtn);
     }
@@ -336,7 +394,7 @@ export function createPrintPreviewView(options: PrintPreviewViewOptions = {}): P
     clearPageObservers();
     currentData = data;
     widget.setAttribute('aria-busy', 'false');
-    pageBadge.textContent = `${data.pages.length} 页`;
+    pageBadge.textContent = t.pagesCount(data.pages.length);
     pageBadge.style.display = 'inline-block';
     body.innerHTML = '';
 
@@ -446,7 +504,7 @@ export function createPrintPreviewView(options: PrintPreviewViewOptions = {}): P
         const sliceHeightPx = (page.end - page.start) * scale;
         label.textContent =
           `P.${index + 1} / ${data.pages.length} · ${data.paperLabel}` +
-          (fullscreen ? ` · 切片高度 ${Math.round(page.end - page.start)}px` : '');
+          (fullscreen ? t.sliceHeight(Math.round(page.end - page.start)) : '');
 
         sheet.style.width = `${paperWidthPx * currentZoom}px`;
         sheet.style.height = `${paperHeightPx * currentZoom}px`;
@@ -621,6 +679,7 @@ export async function previewPrint(
     mode: options.mode,
     container: options.container,
     zoom: options.zoom,
+    locale: options.locale,
     onClose: options.onClose,
     document: ownerDoc,
     onDispose: () => {
@@ -707,9 +766,13 @@ function getCloseSvg(): string {
 const PREVIEW_STYLE_ATTR = 'data-print-preview-style';
 
 function ensurePreviewStyles(doc: Document) {
-  if (!doc.head || doc.head.querySelector(`[${PREVIEW_STYLE_ATTR}="true"]`)) return;
-  const style = doc.createElement('style');
-  style.setAttribute(PREVIEW_STYLE_ATTR, 'true');
+  if (!doc.head) return;
+  let style = doc.head.querySelector<HTMLStyleElement>(`[${PREVIEW_STYLE_ATTR}="true"]`);
+  if (!style) {
+    style = doc.createElement('style');
+    style.setAttribute(PREVIEW_STYLE_ATTR, 'true');
+    doc.head.appendChild(style);
+  }
   style.textContent = `
 .wp-preview-backdrop {
   position: fixed;
@@ -719,12 +782,12 @@ function ensurePreviewStyles(doc: Document) {
 }
 .wp-preview-widget {
   position: fixed;
-  right: 24px;
-  bottom: 24px;
-  width: 348px;
+  right: 16px;
+  bottom: 16px;
+  width: 260px;
   background: #0f172a;
-  border-radius: 10px;
-  box-shadow: 0 12px 36px rgba(15, 23, 42, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.12);
   z-index: 2147483645;
   overflow: hidden;
   display: flex;
@@ -752,12 +815,12 @@ function ensurePreviewStyles(doc: Document) {
   z-index: 2147483645;
 }
 .wp-preview-header {
-  height: 38px;
+  height: 34px;
   background: #0f172a;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 10px;
+  padding: 0 8px 0 10px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   user-select: none;
   flex-shrink: 0;
@@ -765,21 +828,26 @@ function ensurePreviewStyles(doc: Document) {
 .wp-preview-title-wrap {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0;
   color: #f8fafc;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
+}
+.wp-preview-title-text {
+  display: none !important;
 }
 .wp-preview-badge {
   background: #9fcbb3;
   color: #0f172a;
   font-size: 11px;
-  padding: 1px 6px;
-  border-radius: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 9999px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   white-space: nowrap;
   line-height: 16px;
+  letter-spacing: 0.02em;
 }
 .wp-preview-header-actions {
   display: flex;
@@ -787,13 +855,7 @@ function ensurePreviewStyles(doc: Document) {
   gap: 4px;
 }
 .wp-preview-zoom-group {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 5px;
-  padding: 1px 2px;
-  margin-right: 2px;
+  display: none !important;
 }
 .wp-preview-zoom-label {
   background: transparent;
@@ -840,22 +902,22 @@ function ensurePreviewStyles(doc: Document) {
   outline-offset: 1px;
 }
 .wp-preview-body {
-  height: 380px;
-  background: #334155;
+  height: 320px;
+  background: #1e293b;
   overflow-y: auto;
-  overflow-x: auto;
-  padding: 12px 10px 24px;
+  overflow-x: hidden;
+  padding: 8px 6px 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 10px;
   box-sizing: border-box;
 }
 .wp-preview-widget.wp-preview-widget--fullscreen .wp-preview-body {
-  height: calc(100% - 38px);
-  padding: 28px 20px 60px;
+  height: calc(100% - 34px);
+  padding: 24px 16px 48px;
   background: #1e293b;
-  gap: 24px;
+  gap: 20px;
 }
 .wp-preview-sheet-container {
   display: flex;
@@ -864,13 +926,13 @@ function ensurePreviewStyles(doc: Document) {
   flex-shrink: 0;
 }
 .wp-preview-sheet-label {
-  font-size: 11px;
+  font-size: 10px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  color: #cbd5e1;
-  margin-bottom: 6px;
+  color: #94a3b8;
+  margin-bottom: 2px;
   font-weight: 500;
   align-self: flex-start;
-  padding-left: 4px;
+  padding-left: 2px;
 }
 .wp-preview-page-sheet {
   background: #ffffff;

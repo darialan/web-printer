@@ -10,6 +10,7 @@ import { DownOutlined } from '@ant-design/icons';
 import { cloneElement } from 'react';
 import { PrintSettingsButton } from '../config-panel/settings-panel';
 import { getOutputPresetName } from '../config-panel/output-presets';
+import { demoCopy, Locale, useLocale } from '../locale';
 import './print-toolbar.css';
 
 export interface PrintToolbarActionsProps {
@@ -19,6 +20,7 @@ export interface PrintToolbarActionsProps {
   progress?: string;
   previewOpen?: boolean;
   onOpenPreview?: () => void;
+  onTogglePreview?: () => void;
   loading: boolean;
   exporting: boolean;
   settings: PrintSettings;
@@ -27,11 +29,12 @@ export interface PrintToolbarActionsProps {
   onToggleDebug: () => void;
   onCancelExport: () => void;
   onSettingsChange: (next: PrintSettings) => void;
+  locale?: Locale;
 }
 
 export function PrintToolbarActions({
   outputFormat = 'pdf', onOutputFormatChange,
-  ready = true, progress, previewOpen = true, onOpenPreview,
+  ready = true, progress, previewOpen = false, onOpenPreview, onTogglePreview,
   loading,
   exporting,
   settings,
@@ -40,43 +43,48 @@ export function PrintToolbarActions({
   onToggleDebug,
   onCancelExport,
   onSettingsChange,
+  locale: propLocale,
 }: PrintToolbarActionsProps) {
+  const [activeLocale] = useLocale();
+  const locale = propLocale || activeLocale;
+  const t = demoCopy[locale];
+
   const paper = resolvePaper(settings);
   const unitFactor = settings.unit === 'px' ? 96 / 25.4 : 1;
   const displayWidth = Number((paper.widthMm * unitFactor).toFixed(1));
   const displayHeight = Number((paper.heightMm * unitFactor).toFixed(1));
 
-  const paperName = getOutputPresetName(settings.paper);
+  const paperName = getOutputPresetName(settings.paper, locale);
   const paperSize = `${displayWidth} × ${displayHeight} ${settings.unit || 'mm'}`;
 
   return (
     <div className="print-tab-bar-extra">
-      {/* 信息区：只读的文档上下文，弱化为文字，不与按钮抢视觉 */}
-      <div className="print-toolbar-meta" aria-label="输出规格">
+      {/* Meta info area: read-only document context */}
+      <div className="print-toolbar-meta" aria-label={t.specsLabel}>
         <svg className="print-meta-icon" width="13" height="13" viewBox="0 0 16 16" fill="none"
           stroke="currentColor" strokeWidth="1.3" aria-hidden="true">
           <path d="M4 1.5h5L13 5.5v9H4z" strokeLinejoin="round" />
           <path d="M9 1.5v4h4" strokeLinejoin="round" />
         </svg>
-        <span className="print-meta-label">尺寸</span>
+        <span className="print-meta-label">{t.sizeLabel}</span>
         <span className="print-meta-value">{paperName}</span>
         <span className="print-meta-dim">{paperSize}</span>
       </div>
 
       <span className="print-toolbar-divider" aria-hidden="true" />
 
-      {/* 操作区：导出进行中时整体收敛成一条任务状态，不再和禁用按钮混排 */}
+      {/* Action area: consolidates into task status during export */}
       <div className="print-toolbar-actions">
         {exporting ? (
           <div className="print-export-task" role="status" aria-live="polite">
             <span className="print-export-spinner" aria-hidden="true" />
-            <span className="print-export-task-text">{progress || '正在导出…'}</span>
-            <Button type="text" size="small" danger onClick={onCancelExport}>取消导出</Button>
+            <span className="print-export-task-text">{progress || t.exporting}</span>
+            <Button type="text" size="small" danger onClick={onCancelExport}>{t.cancelExport}</Button>
           </div>
         ) : (
           <>
             <div className="print-toolbar-group">
-              <PrintSettingsButton value={settings} disabled={loading} onChange={onSettingsChange} />
+              <PrintSettingsButton value={settings} disabled={loading} onChange={onSettingsChange} locale={locale} />
 
               <Button
                 type={debugActive ? 'primary' : 'default'}
@@ -85,12 +93,18 @@ export function PrintToolbarActions({
                 disabled={loading || !ready}
                 aria-pressed={debugActive}
               >
-                {debugActive ? '退出检查' : '检查分页'}
+                {t.pageBreaks}
               </Button>
 
-              {debugActive && !previewOpen && onOpenPreview && (
-                <Button onClick={onOpenPreview} disabled={loading}>打开预览</Button>
-              )}
+              <Button
+                type={previewOpen ? 'primary' : 'default'}
+                ghost={previewOpen}
+                onClick={onTogglePreview || onOpenPreview}
+                disabled={loading || !ready}
+                aria-pressed={previewOpen}
+              >
+                {t.paperPreview}
+              </Button>
             </div>
             {onOutputFormatChange ? (
               <Dropdown.Button
@@ -103,22 +117,22 @@ export function PrintToolbarActions({
                 icon={<DownOutlined />}
                 onClick={onExport}
                 buttonsRender={([action, toggle]) => [action, cloneElement(toggle as React.ReactElement, {
-                  'aria-label': '选择导出格式',
+                  'aria-label': t.exportFormatSelect,
                 })]}
                 menu={{
                   selectable: true,
                   selectedKeys: [outputFormat],
                   items: [
-                    { key: 'pdf', label: 'PDF 文档' },
-                    { key: 'png', label: 'PNG 分页图片' },
+                    { key: 'pdf', label: t.formatPdf },
+                    { key: 'png', label: t.formatPng },
                   ],
                   onClick: ({ key }) => onOutputFormatChange(key as OutputFormat),
                 }}
               >
-                {outputFormat === 'pdf' ? '导出 PDF' : '导出图片'}
+                {outputFormat === 'pdf' ? t.exportPdf : t.exportPng}
               </Dropdown.Button>
             ) : (
-              <Button type="primary" onClick={onExport} disabled={!ready || loading}>导出 PDF</Button>
+              <Button type="primary" onClick={onExport} disabled={!ready || loading}>{t.exportPdf}</Button>
             )}
           </>
         )}
@@ -131,28 +145,34 @@ export interface PrintObservabilityBannerProps {
   inspection: PrintInspectionResult | null;
   stats?: ObservabilityStats;
   onClose?: () => void;
+  locale?: Locale;
 }
 
 export function PrintObservabilityBanner({
   inspection,
   stats,
   onClose,
+  locale: propLocale,
 }: PrintObservabilityBannerProps) {
+  const [activeLocale] = useLocale();
+  const locale = propLocale || activeLocale;
+  const t = demoCopy[locale];
+
   if (!inspection) return null;
 
   return (
     <div className="print-observability-panel">
       <div className="observability-metrics">
         <span>
-          总页数: <strong>{inspection.pages.length} 页</strong>
+          {t.totalPages}: <strong>{inspection.pages.length} {t.pagesUnit}</strong>
         </span>
         <span style={{ color: 'var(--line, #cbd5e1)' }}>•</span>
         <span>
-          每页正文高度: <strong>{Math.round(inspection.capacity)}px</strong>
+          {locale === 'zh' ? '每页正文高度' : 'Page Height'}: <strong>{Math.round(inspection.capacity)}px</strong>
         </span>
         <span style={{ color: 'var(--line, #cbd5e1)' }}>•</span>
         <span>
-          标记耗时: <strong>{inspection.timing.totalMs.toFixed(1)}ms</strong>
+          {locale === 'zh' ? '标记耗时' : 'Marking'}: <strong>{inspection.timing.totalMs.toFixed(1)}ms</strong>
         </span>
       </div>
 
@@ -174,8 +194,8 @@ export function PrintObservabilityBanner({
             type="button"
             className="observability-close-btn"
             onClick={onClose}
-            title="退出检查"
-            aria-label="退出检查"
+            title={t.exitInspection}
+            aria-label={t.exitInspection}
           >
             ✕
           </button>
@@ -185,7 +205,7 @@ export function PrintObservabilityBanner({
   );
 }
 
-// 保持向下兼容导出
+// Backward compatible export
 export interface PrintDebugToolbarProps {
   loading: boolean;
   settings: PrintSettings;
@@ -195,6 +215,7 @@ export interface PrintDebugToolbarProps {
   onInspect: () => void;
   onCancel: () => void;
   onSettingsChange: (next: PrintSettings) => void;
+  locale?: Locale;
 }
 
 export function PrintDebugToolbar({
@@ -206,6 +227,7 @@ export function PrintDebugToolbar({
   onInspect,
   onCancel,
   onSettingsChange,
+  locale,
 }: PrintDebugToolbarProps) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0' }}>
@@ -218,6 +240,7 @@ export function PrintDebugToolbar({
         onToggleDebug={onInspect}
         onCancelExport={onCancel}
         onSettingsChange={onSettingsChange}
+        locale={locale}
       />
       <span role="status" style={{ color: '#64748b', fontSize: 12 }}>
         {progress || report}

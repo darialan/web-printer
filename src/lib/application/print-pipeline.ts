@@ -52,7 +52,7 @@ export interface PaginationPipelineOptions {
   maxPages: number;
   rules?: readonly PrintRule[];
   ruleConfig?: PrintRuleConfig;
-  /** 独立于 rules 的 splittable 策略选择器；未提供时随 ruleConfig 推导，否则取全局配置。 */
+  /** Splittable policy selector independent of rules; inferred from ruleConfig if omitted, otherwise global default. */
   splittableSelector?: string;
 }
 
@@ -72,7 +72,7 @@ export interface LayoutOptions {
   maxPages?: number;
   rules?: readonly PrintRule[];
   ruleConfig?: PrintRuleConfig;
-  /** 独立于 rules 的 splittable 策略选择器；未提供时随 ruleConfig 推导，否则取全局配置。 */
+  /** Splittable policy selector independent of rules; inferred from ruleConfig if omitted, otherwise global default. */
   splittableSelector?: string;
 }
 
@@ -136,14 +136,14 @@ export function resolvePrintElement(target: unknown): HTMLElement | null {
     try {
       doc = iframe.contentDocument || iframe.contentWindow?.document;
     } catch {
-      throw new Error('无法读取跨域 iframe，请在嵌入系统内接入打印工具或使用其导出接口');
+      throw new Error('Cannot access cross-origin iframe. Please integrate print tooling directly inside the embedded system or use its export API.');
     }
     if (!doc?.body || doc.readyState === 'loading' || (doc.URL === 'about:blank' && Boolean(iframe.getAttribute('src')))) {
-      throw new Error('iframe 内容尚未就绪，请等待加载完成后重试');
+      throw new Error('iframe content is not ready yet. Please wait for loading to complete and try again.');
     }
     const content = (doc.getElementById('iframe-report-content') as HTMLElement) || doc.body;
     if (!isPrintableElement(content) || (!content.childElementCount && !content.textContent?.trim())) {
-      throw new Error('iframe 中没有可打印的业务内容');
+      throw new Error('No printable business content found inside the iframe.');
     }
     return content;
   }
@@ -157,18 +157,18 @@ export async function prepareLayout(options: LayoutOptions): Promise<PreparedLay
 
   const printElement = resolvePrintElement(options.element);
   if (!printElement) {
-    throw new Error('找不到有效的打印区域');
+    throw new Error('Valid print container not found');
   }
   if (!['portrait', 'landscape'].includes(orientation)) {
-    throw new Error('纸张方向必须为 portrait 或 landscape');
+    throw new Error('Paper orientation must be either portrait or landscape');
   }
   const paper = resolvePaper({ ...DEFAULT_SETTINGS, orientation, ...(options.settings || {}) });
   if (activeRoots.has(printElement)) {
-    throw new Error('该区域正在导出，请勿重复提交');
+    throw new Error('This region is currently being exported. Please do not submit concurrently.');
   }
   let width = printElement.getBoundingClientRect().width;
   if (!Number.isFinite(width) || width <= 0) {
-    throw new Error('打印区域宽度为零，请先显示内容');
+    throw new Error('Print container width is zero. Please ensure content is visible.');
   }
   checkCancelled(signal);
   const rules = options.rules || (options.ruleConfig ? buildPrintRules(options.ruleConfig) : getPrintRules());
@@ -195,7 +195,7 @@ export async function prepareLayout(options: LayoutOptions): Promise<PreparedLay
       if (extra && isPrintableElement(extra)) await waitForResources(extra, signal, rules);
     }
     width = printElement.getBoundingClientRect().width;
-    if (!Number.isFinite(width) || width <= 0) throw new Error('打印区域宽度为零，请先显示内容');
+    if (!Number.isFinite(width) || width <= 0) throw new Error('Print container width is zero. Please ensure content is visible.');
     snapshot = createPrintSnapshot(width, rules, options.excludedElements, options.transformSnapshotNode);
     const root = snapshot.clone(printElement);
 

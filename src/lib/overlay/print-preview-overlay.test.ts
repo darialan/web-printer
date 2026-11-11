@@ -262,4 +262,17 @@ describe('previewPrint 原生纸张预览小窗', () => {
     expect(onClose).not.toHaveBeenCalled();
     expect(onDispose).toHaveBeenCalledTimes(1);
   });
+
+  test('createPrintPreviewView supports English locale chrome', () => {
+    const view = createPrintPreviewView({ locale: 'en' });
+    view.showData(mockPreviewData);
+    expect(screen.getByText('📄 Paper Preview')).toBeInTheDocument();
+    expect(screen.getByText('3 pages')).toBeInTheDocument();
+    expect(screen.getByTitle('Close preview window')).toBeInTheDocument();
+    expect(screen.getByTitle('Zoom in')).toBeInTheDocument();
+    expect(screen.getByTitle('Zoom out')).toBeInTheDocument();
+    expect(screen.getByTitle('Collapse preview')).toBeInTheDocument();
+    expect(screen.getByTitle('Fullscreen preview')).toBeInTheDocument();
+    view.dispose();
+  });
 });

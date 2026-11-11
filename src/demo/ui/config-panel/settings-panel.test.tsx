@@ -3,6 +3,7 @@ import { PrintSettingsButton } from './settings-panel';
 import { DEFAULT_SETTINGS } from '@darialan/web-printer';
 
 beforeEach(() => {
+  localStorage.setItem('web-printer-locale', 'zh');
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
     value: jest.fn().mockImplementation(query => ({
@@ -132,3 +133,19 @@ test('页码设置：关闭显示页码时隐藏位置与格式选项并保存',
   const saved = handleChange.mock.calls[0][0];
   expect(saved.pageNumber?.enabled).toBe(false);
 });
+
+test('English mode: renders Print Settings modal with English labels', async () => {
+  const handleChange = jest.fn();
+  render(<PrintSettingsButton value={DEFAULT_SETTINGS} disabled={false} onChange={handleChange} locale="en" />);
+
+  fireEvent.click(screen.getByRole('button', { name: 'Print Settings' }));
+  expect(screen.getByRole('dialog')).toBeInTheDocument();
+  expect(screen.getByText('Orientation')).toBeInTheDocument();
+  expect(screen.getByText('Size Unit')).toBeInTheDocument();
+  expect(screen.getByText('Paper Size')).toBeInTheDocument();
+  expect(screen.getByPlaceholderText('Enter width')).toBeInTheDocument();
+  expect(screen.getByPlaceholderText('Enter height')).toBeInTheDocument();
+  expect(screen.getByText('Page Numbers')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Apply' })).toBeInTheDocument();
+});
+

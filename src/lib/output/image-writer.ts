@@ -8,7 +8,7 @@ function encodePng(canvas: HTMLCanvasElement): Promise<Blob> {
   return new Promise((resolve, reject) =>
     canvas.toBlob(
       (blob) =>
-        blob ? resolve(blob) : reject(new Error('图片编码失败，请重试导出')),
+        blob ? resolve(blob) : reject(new Error('Image encoding failed, please retry export')),
       'image/png',
     ),
   );
@@ -17,7 +17,7 @@ function readBlob(blob: Blob): Promise<Uint8Array> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(new Uint8Array(reader.result as ArrayBuffer));
-    reader.onerror = () => reject(new Error('图片读取失败，请重试导出'));
+    reader.onerror = () => reject(new Error('Image reading failed, please retry export'));
     reader.readAsArrayBuffer(blob);
   });
 }
@@ -47,7 +47,7 @@ export function composePageCanvas(
     sheet.width = Math.ceil(g.pageWidth * density);
     sheet.height = Math.ceil(g.pageHeight * density);
     const ctx = sheet.getContext('2d');
-    if (!ctx) throw new Error('浏览器无法生成分页图片');
+    if (!ctx) throw new Error('Browser failed to generate page image');
     ctx.scale(density, density);
     ctx.fillStyle = '#fff';
     ctx.fillRect(0, 0, g.pageWidth, g.pageHeight);
@@ -100,7 +100,7 @@ export function createImageWriter({
   maxBytes = 128 * 1024 * 1024,
 }: OutputWriterOptions): OutputWriter {
   if (!Number.isFinite(maxBytes) || maxBytes <= 0)
-    throw new Error('图片内存预算必须是大于零的数值');
+    throw new Error('Image memory budget must be a positive number');
   const entries: { name: string; data: Uint8Array }[] = [];
   let totalBytes = 0;
   return {
@@ -118,7 +118,7 @@ export function createImageWriter({
         const data = await readBlob(await encodePng(sheet));
         checkCancelled(signal);
         if (totalBytes + data.byteLength > maxBytes)
-          throw new Error('图片总大小超过内存预算，请减小区域或分批导出');
+          throw new Error('Total image size exceeds memory budget, please reduce print area or export in batches');
         totalBytes += data.byteLength;
         entries.push({
           name: `page-${String(index + 1).padStart(Math.max(3, String(totalPages).length), '0')}.png`,

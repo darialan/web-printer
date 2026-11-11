@@ -10,7 +10,7 @@ export function createTextMeasurer(rootTop: number, collapse: (y: number) => num
   let characters = 0;
   return (node: Node, clip?: { top: number; bottom: number; left: number; right: number }): Interval[] => {
     characters += node.textContent?.length || 0;
-    if (characters > 200000) throw new Error('文本超过 200,000 字符限制，请拆分导出');
+    if (characters > 200000) throw new Error('Text exceeds 200,000 character limit, please split export');
     const parent = node.parentElement;
     if (parent && !lineHeights.has(parent)) {
       const win = parent.ownerDocument?.defaultView || window;

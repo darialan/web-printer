@@ -1,7 +1,95 @@
-import { useEffect, useState } from 'react';
+import { createContext, createElement, Fragment, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 export type Locale = 'zh' | 'en';
 const STORAGE_KEY = 'web-printer-locale';
+
+export function readStoredLocale(): Locale {
+  try {
+    const requested = new URLSearchParams(window.location.search).get('lang');
+    if (requested === 'zh' || requested === 'en') return requested;
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved === 'zh' || saved === 'en') return saved;
+  } catch { /* Storage can be unavailable in private contexts. */ }
+  return navigator.language?.toLowerCase().startsWith('zh') ? 'zh' : 'en';
+}
+
+function syncDocumentLocale(loc: Locale) {
+  try {
+    const url = new URL(window.location.href);
+    url.searchParams.set('lang', loc);
+    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+    document.documentElement.lang = loc === 'zh' ? 'zh-CN' : 'en';
+    document.title = copy[loc].title;
+    document.querySelector('meta[name="description"]')?.setAttribute('content', copy[loc].description);
+    localStorage.setItem(STORAGE_KEY, loc);
+  } catch { /* Keep switching functional without storage or DOM. */ }
+}
+
+const LocaleContext = createContext<[Locale, (next: Locale) => void] | null>(null);
+
+function LocaleProviderInternal({
+  children,
+  initialLocale,
+}: {
+  children?: ReactNode;
+  initialLocale?: Locale;
+}) {
+  const [locale, setLocaleState] = useState<Locale>(() => initialLocale || readStoredLocale());
+
+  useEffect(() => {
+    syncDocumentLocale(locale);
+  }, [locale]);
+
+  const setLocale = (next: Locale) => {
+    syncDocumentLocale(next);
+    setLocaleState(next);
+  };
+
+  const value = useMemo<[Locale, (next: Locale) => void]>(
+    () => [locale, setLocale],
+    [locale],
+  );
+
+  return createElement(LocaleContext.Provider, { value }, children);
+}
+
+/**
+ * Root locale provider. Guarantees that all child components,
+ * including lazy-loaded chunks and separate subtrees, stay in 100% sync.
+ */
+export function LocaleProvider({
+  children,
+  initialLocale,
+}: {
+  children: ReactNode;
+  initialLocale?: Locale;
+}) {
+  const existing = useContext(LocaleContext);
+  // If already wrapped in a parent LocaleProvider and no initialLocale override is passed,
+  // reuse the parent provider without introducing duplicate state.
+  if (existing && !initialLocale) {
+    return createElement(Fragment, null, children);
+  }
+  return createElement(LocaleProviderInternal, { initialLocale }, children);
+}
+
+export function useLocale(): [Locale, (next: Locale) => void] {
+  const context = useContext(LocaleContext);
+  const [localFallback, setLocalFallback] = useState<Locale>(readStoredLocale);
+
+  // If inside a LocaleProvider, use the centralized Context state
+  if (context) {
+    return context;
+  }
+
+  // Fallback for standalone tests rendered outside of LocaleProvider
+  const setFallback = (next: Locale) => {
+    syncDocumentLocale(next);
+    setLocalFallback(next);
+  };
+
+  return [localFallback, setFallback];
+}
 
 export const copy = {
   zh: {
@@ -205,25 +293,3 @@ export const copy = {
     footerNote: 'MIT Licensed · Web Printer',
   },
 };
-
-export function useLocale() {
-  const [locale, setLocale] = useState<Locale>(() => {
-    try {
-      const requested = new URLSearchParams(window.location.search).get('lang');
-      if (requested === 'zh' || requested === 'en') return requested;
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved === 'zh' || saved === 'en') return saved;
-    } catch { /* Storage can be unavailable in private contexts. */ }
-    return navigator.language?.toLowerCase().startsWith('zh') ? 'zh' : 'en';
-  });
-  useEffect(() => {
-    const url = new URL(window.location.href);
-    url.searchParams.set('lang', locale);
-    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
-    document.documentElement.lang = locale === 'zh' ? 'zh-CN' : 'en';
-    document.title = copy[locale].title;
-    document.querySelector('meta[name="description"]')?.setAttribute('content', copy[locale].description);
-    try { localStorage.setItem(STORAGE_KEY, locale); } catch { /* Keep switching functional without storage. */ }
-  }, [locale]);
-  return [locale, setLocale] as const;
-}

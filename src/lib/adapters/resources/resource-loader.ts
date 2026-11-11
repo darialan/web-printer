@@ -20,8 +20,8 @@ export async function waitForResources(host: HTMLElement, signal?: AbortSignal, 
   let timeout: ReturnType<typeof setTimeout>;
   let abort = () => {};
   const guard = new Promise<never>((_, reject) => {
-    timeout = setTimeout(() => reject(new Error('字体或图片加载超时，请稍后重试')), 15000);
-    abort = () => reject(new Error('导出已取消'));
+    timeout = setTimeout(() => reject(new Error('Font or image loading timed out, please try again later')), 15000);
+    abort = () => reject(new Error('Export was cancelled'));
     signal?.addEventListener('abort', abort, { once: true });
   });
   try {
@@ -37,8 +37,8 @@ export async function waitForResources(host: HTMLElement, signal?: AbortSignal, 
           return isPaintVisible(img);
         }).map(async img => {
           try { await img.decode(); }
-          catch { throw new Error(`图片加载失败：${img.alt || '未命名图片'}`); }
-          if (!img.naturalWidth) throw new Error(`图片内容为空：${img.alt || '未命名图片'}`);
+          catch { throw new Error(`Failed to load image: ${img.alt || 'unnamed image'}`); }
+          if (!img.naturalWidth) throw new Error(`Image content is empty: ${img.alt || 'unnamed image'}`);
         }),
       ]);
       await settleLayout(signal);

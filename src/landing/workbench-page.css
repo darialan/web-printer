@@ -4,6 +4,8 @@
 .workbench-topbar-inner { display: flex; align-items: center; gap: 16px; min-height: 60px; padding-inline: 24px; }
 .workbench-topbar-title { display: flex; align-items: center; gap: 10px; margin-left: 4px; padding-left: 16px; border-left: 1px solid var(--line); color: var(--ink2); font-size: 13px; white-space: nowrap; }
 .workbench-topbar-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.workbench-topbar-actions .language-toggle { display: inline-grid; place-items: center; min-width: 36px; height: 36px; padding: 0 8px; border: 1px solid transparent; border-radius: 6px; color: var(--ink2); background: transparent; font-size: 13px; font-weight: 600; cursor: pointer; }
+.workbench-topbar-actions .language-toggle:hover { background: var(--bg2); border-color: var(--line); color: var(--ink); }
 .workbench-main { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 0 24px; }
 .workbench-loading { padding: 90px 24px; color: var(--ink2); text-align: center; }
 /* 场景标签与导出工具常驻顶部，滚动长单据时仍可操作。 */

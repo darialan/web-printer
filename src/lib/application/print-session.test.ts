@@ -60,7 +60,7 @@ test('PDF and PNG share one frozen layout; source settings cannot mutate an exis
   expect(cleanup).toHaveBeenCalledTimes(1);
   expect(dispose).toHaveBeenCalledTimes(1);
   await expect(session.exportDocument({ filename: 'again' })).rejects.toThrow(
-    '关闭',
+    'closed',
   );
 });
 test('preparation failure does not leave an abort listener attached', async () => {
@@ -75,7 +75,7 @@ test('preparation failure does not leave an abort listener attached', async () =
 test('cancelled export can be retried on same session without repagination', async () => {
   output.mockImplementationOnce(async (_layout, options) => {
     options.signal.throwIfAborted?.();
-    if (options.signal.aborted) throw Error('取消');
+    if (options.signal.aborted) throw Error('cancelled');
   });
   const session = await createPrintSession({ element: null });
   const abort = new AbortController();
@@ -102,7 +102,7 @@ test('rejects simultaneous capture/export and disposes an in-flight operation', 
   const pending = session.exportDocument({ filename: 'report' });
   await expect(
     session.exportDocument({ filename: 'duplicate' }),
-  ).rejects.toThrow('上一项');
+  ).rejects.toThrow('in progress');
   session.dispose();
   await expect(pending).rejects.toThrow('cancelled');
   expect(cleanup).toHaveBeenCalledTimes(1);
@@ -110,8 +110,8 @@ test('rejects simultaneous capture/export and disposes an in-flight operation', 
 });
 test('thumbnail validates page index before allocating a canvas', async () => {
   const session = await createPrintSession({ element: null });
-  await expect(session.thumbnail(-1)).rejects.toThrow('页码');
-  await expect(session.thumbnail(2)).rejects.toThrow('页码');
+  await expect(session.thumbnail(-1)).rejects.toThrow('Invalid preview page index');
+  await expect(session.thumbnail(2)).rejects.toThrow('Invalid preview page index');
   session.dispose();
 });
 

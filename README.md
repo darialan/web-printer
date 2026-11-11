@@ -4,6 +4,10 @@
 
 <h1 align="center">Web Printer</h1>
 
+<p align="center">
+  <a href="./README.en.md">English</a> | <strong>中文</strong>
+</p>
+
 <p align="center"><strong>保留网页样式，按内容分页，更快、更稳地导出 PDF 和图片。</strong></p>
 <p align="center"><em>Print what you see. Break where it makes sense.</em></p>
 

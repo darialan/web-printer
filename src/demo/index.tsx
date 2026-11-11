@@ -7,7 +7,7 @@ import { PurchaseOrderDemo, PURCHASE_ORDER_CONTENT_ID } from './purchase-order';
 
 export * from './ui';
 
-// Demo 业务层使用了 Ant Design，在 Demo 业务层统一配置注册 Ant Design 组件库选择器
+// Demo application registers print selectors for third-party component libraries like Ant Design
 configurePrint({
 });
 

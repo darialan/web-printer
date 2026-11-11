@@ -84,22 +84,22 @@ export function createPageCapture(width: number, signal?: AbortSignal) {
   return {
     timings,
     async capture(element: HTMLElement, y: number, height: number) {
-      if (signal?.aborted || disposed) throw new Error('导出已取消');
+      if (signal?.aborted || disposed) throw new Error('Export was cancelled');
       assertNoLegacyIgnore(element);
       if (![width, y, height].every(Number.isFinite) || width <= 0 || height <= 0 || y < 0) {
-        throw new Error('截图区域尺寸无效');
+        throw new Error('Capture area dimensions are invalid');
       }
       // html2canvas floors scaled dimensions. Reserve a pixel of headroom for
       // full-paper composition, which rounds up instead.
       const scale = Math.min(2, Math.sqrt(MAX_PIXELS / (Math.ceil(width) * Math.ceil(height))), MAX_DIMENSION / width, MAX_DIMENSION / height);
-      if (!Number.isFinite(scale) || scale < 0.5) throw new Error('页面像素超限，请缩小打印区域宽度');
+      if (!Number.isFinite(scale) || scale < 0.5) throw new Error('Page pixel dimensions exceed limits, please reduce print area width');
       let frame: Element | null = null;
       let abandoned = false;
       let cancel = () => {};
       let timer: ReturnType<typeof setTimeout> | undefined;
       const interrupted = new Promise<never>((_, reject) => {
-        cancel = () => { abandoned = true; reject(new Error('导出已取消')); };
-        timer = setTimeout(() => { abandoned = true; reject(new Error('单页截图超过 30 秒限制，请减少内容或检查资源')); }, CAPTURE_TIMEOUT_MS);
+        cancel = () => { abandoned = true; reject(new Error('Export was cancelled')); };
+        timer = setTimeout(() => { abandoned = true; reject(new Error('Single-page capture exceeded 30-second timeout, please reduce content or check resources')); }, CAPTURE_TIMEOUT_MS);
       });
       cancellers.add(cancel);
       signal?.addEventListener('abort', cancel, { once: true });
@@ -120,7 +120,7 @@ export function createPageCapture(width: number, signal?: AbortSignal) {
             // own frame reference so a CSS parse/render failure also frees it.
             frame = doc.defaultView?.frameElement || null;
             cloned = performance.now();
-            if (abandoned || signal?.aborted || disposed) { frame?.remove(); throw new Error('导出已取消'); }
+            if (abandoned || signal?.aborted || disposed) { frame?.remove(); throw new Error('Export was cancelled'); }
             normalizeSvgElements(doc);
           },
           ignoreElements: node => {
@@ -137,8 +137,8 @@ export function createPageCapture(width: number, signal?: AbortSignal) {
         rendering.then(canvas => { if (abandoned || disposed || signal?.aborted) release(canvas); }, () => {});
         const canvas = await Promise.race([rendering, interrupted]);
         canvases.add(canvas);
-        if (signal?.aborted || disposed) { release(canvas); throw new Error('导出已取消'); }
-        if (!canvas.width || !canvas.height) { release(canvas); throw new Error('截图为空，请检查打印区域'); }
+        if (signal?.aborted || disposed) { release(canvas); throw new Error('Export was cancelled'); }
+        if (!canvas.width || !canvas.height) { release(canvas); throw new Error('Captured canvas is empty, please check print area'); }
         const ended = performance.now();
         timings.push({ y, height, pixels: canvas.width * canvas.height,
           cloneAndResourcesMs: cloned - started, renderMs: ended - cloned, totalMs: ended - started });

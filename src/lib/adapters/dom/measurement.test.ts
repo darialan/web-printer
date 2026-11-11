@@ -151,9 +151,9 @@ test('the selected root itself honors atomic and ignore protocols', () => {
   root.setAttribute('data-print-atomic', 'true');
   setRect(root, 0, 300);
   expect(measureDocument(root, 500).ranges).toEqual([{ top: 0, bottom: 300 }]);
-  expect(() => measureDocument(root, 200)).toThrow('超过');
+  expect(() => measureDocument(root, 200)).toThrow('exceeds');
   root.setAttribute('data-print-ignore', 'true');
-  expect(() => measureDocument(root, 500)).toThrow('检测到已移除的 ignore 标记');
+  expect(() => measureDocument(root, 500)).toThrow('Legacy ignore');
 });
 
 test('a nested atomic element inside another atomic element is protected once by the outer boundary', () => {

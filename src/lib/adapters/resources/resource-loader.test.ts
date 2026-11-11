@@ -8,7 +8,7 @@ test('abort interrupts a stuck image decoder and removes the abort listener', as
   const remove = jest.spyOn(abort.signal, 'removeEventListener');
   const result = waitForResources(host, abort.signal);
   abort.abort();
-  await expect(result).rejects.toThrow('取消');
+  await expect(result).rejects.toThrow('cancelled');
   expect(remove).toHaveBeenCalledWith('abort', expect.any(Function));
 });
 
@@ -17,7 +17,7 @@ test('resource timeout is bounded even when decoding never resolves', async () =
   const host = document.createElement('div');
   host.innerHTML = '<img alt="unavailable">';
   host.querySelector('img')!.decode = () => new Promise(() => {});
-  const result = expect(waitForResources(host)).rejects.toThrow('超时');
+  const result = expect(waitForResources(host)).rejects.toThrow('timed out');
   jest.advanceTimersByTime(15000);
   await result;
   jest.useRealTimers();

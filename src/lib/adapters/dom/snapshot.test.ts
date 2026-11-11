@@ -136,7 +136,7 @@ test('legacy ignore selectors fail closed instead of changing layout or leaking 
   for (const mark of ['data-print-ignore="true"', 'class="print-ignore"', 'data-pdf-ignore="true"', 'class="pdf-ignore"']) {
     const source = document.createElement('div');
     source.innerHTML = `<p ${mark}>private</p><p>retained</p>`;
-    expect(() => cloneWithResolvedStyles(source)).toThrow('检测到已移除的 ignore 标记');
+    expect(() => cloneWithResolvedStyles(source)).toThrow('Legacy ignore');
     expect(source.textContent).toBe('privateretained');
   }
 });
@@ -145,7 +145,7 @@ test('unreadable canvas fails explicitly instead of exporting a blank placeholde
   const root = document.createElement('div');
   root.innerHTML = '<canvas></canvas>';
   const read = jest.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockImplementation(() => { throw new Error('SecurityError'); });
-  try { expect(() => cloneWithResolvedStyles(root)).toThrow('画布内容无法读取'); }
+  try { expect(() => cloneWithResolvedStyles(root)).toThrow('Canvas content cannot be read'); }
   finally { read.mockRestore(); }
 });
 

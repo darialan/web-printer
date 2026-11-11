@@ -33,7 +33,7 @@ export type TogglePageBreaksResult =
 
 const layers = new Map<HTMLElement, { host: HTMLElement; dispose: () => void }>();
 
-/** 清理 / 查询类 API 不应抛错：iframe 尚未就绪等情况下直接按传入元素处理。 */
+/** Cleanup and query APIs should not throw: handle element directly if iframe is not ready. */
 function resolveQuietly(element: HTMLElement): HTMLElement {
   try {
     return resolvePrintElement(element) || element;
@@ -68,7 +68,7 @@ export function visualizePageBreaks(
   element: HTMLElement,
   rules?: readonly PrintRule[],
   excludedElements?: readonly Element[],
-  /** 用于让 splittable 行的可视化判断与 measureDocument 保持一致；未提供时按"整体保护"展示。 */
+  /** Keeps visualization consistent with measureDocument; defaults to whole-block protection if omitted. */
   capacity?: number,
   splittableSelector?: string
 ): ObservabilityStats;
@@ -105,7 +105,7 @@ async function visualizePageBreaksAsync(
       : (input as VisualizePageBreaksOptions);
   const target = resolvePrintElement(options.element ?? options.contentElement ?? null);
   if (!target) {
-    throw new Error('找不到有效的打印区域');
+    throw new Error('Valid print container not found');
   }
   const inspection = await inspectPrintLayout({ ...options, element: target });
   const resolvedRules =
@@ -128,12 +128,12 @@ async function visualizePageBreaksAsync(
   };
 }
 
-/** 正在测量中的切换任务：重复调用复用同一次测量，避免状态判断错乱。 */
+/** In-flight toggle tasks: concurrent calls reuse same promise to avoid state desync. */
 const pendingToggles = new Map<HTMLElement, Promise<TogglePageBreaksResult>>();
 
 /**
- * 一键切换分页线显示状态：若当前已显示则清除并返回 `{ active: false }`，否则测量并绘制分页线。
- * 测量期间的重复调用会直接复用进行中的那一次结果。
+ * Toggle page break visualization: if currently visible, clears overlay and returns `{ active: false }`;
+ * otherwise measures layout and renders page breaks overlay.
  */
 export async function togglePageBreaks(
   input: VisualizePageBreaksOptions | HTMLElement
@@ -144,7 +144,7 @@ export async function togglePageBreaks(
       : (input as VisualizePageBreaksOptions);
   const target = resolvePrintElement(options.element ?? options.contentElement ?? null);
   if (!target) {
-    throw new Error('找不到有效的打印区域');
+    throw new Error('Valid print container not found');
   }
   const pending = pendingToggles.get(target);
   if (pending) return pending;
@@ -189,8 +189,8 @@ function renderPageBreaksOverlay(
     host.style.width = `${box.width}px`;
     host.style.height = `${box.height}px`;
 
-    // 当打印区域位于内部滚动容器（如工作台 .workbench-main）或吸顶工具栏下方时，
-    // 按可见视口动态裁剪调试层，防止滚动时标记框穿出容器压在吸顶导航栏与工具条之上。
+    // When the print area is inside a scroll container or beneath a sticky toolbar,
+    // dynamically clip debug layer to visible viewport to prevent overlays from bleeding over chrome.
     let visTop = -Infinity;
     let visLeft = -Infinity;
     let visRight = Infinity;
@@ -266,11 +266,11 @@ function renderPageBreaksOverlay(
   const borderTop = 0;
   const borderLeft = 0;
 
-  // 扫描当前打印区域内各节点，按与 measureDocument 一致的语义分类：
+  // Scan nodes within the print area, classifying with matching measureDocument semantics:
   // Explicit caller exclusions
-  // 2. atomic (不可分割最小原子项) —— 含 splittable 独立策略命中且能整体放入单页的情形
-  // 3. splittable (可分割流式项)
-  // 分类结果必须与 measureDocument 保持一致；否则会出现"标成可分割但实际没被切开"的错位。
+  // 2. atomic (atomic blocks) - including splittable elements protected as a whole block
+  // 3. splittable (flow items)
+  // Classification must match measureDocument to avoid visual discrepancies.
   walkPrintTree(element, node => {
     if (node.nodeType !== 1) return 'skip';
     const el = node as HTMLElement;
@@ -305,9 +305,8 @@ function renderPageBreaksOverlay(
     const rect = el.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return 'skip';
 
-    // 2. atomic (严格不可分割：标题、图片媒体、卡片、业务注册原子项)
-    // splittable 是元素分类；命中整块优先保护选择器且能放入单页时，视觉上整体保护，
-    // 超高时继续下钻，与 atomic 分列但同框展示。
+    // 2. atomic (strictly indivisible: headings, media, cards, registered atomic items)
+    // splittable elements matching whole-block preference are visually protected as atomic
     const fitsSplittable = el.matches(splittableSelector) && (capacity === undefined || rect.height <= capacity);
     if (rule?.kind === 'atomic' || (rule?.kind === 'splittable' && fitsSplittable)) {
       stats.atomic++;
@@ -328,10 +327,10 @@ function renderPageBreaksOverlay(
       return 'skip';
     }
 
-    // 行内元素（b / code / 行内公式）不单独成框，避免把一行文字里的片段标成"区域"
+    // Inline elements (b / code / math) do not form individual bounding boxes
     if (isInlineBox(el, win)) return 'skip';
 
-    // 3. splittable (可分割流式项：真正拥有正文文本的块，允许被物理分页线切断)
+    // 3. splittable (flow items with actual body text, allowed to be split across pages)
     const splittable = rule?.kind === 'splittable';
     const ownsFlowingText = hasOwnText(el);
     if (splittable && (el.matches(SPLIT_CONTAINER_SELECTOR) || ownsFlowingText)) {
@@ -350,16 +349,15 @@ function renderPageBreaksOverlay(
           badgePosition: 'right',
         })
       );
-      // splittable 元素继续下钻，确保内部 atomic 子项也被标记
+      // Descend into splittable elements to mark inner atomic children
       return 'descend';
     }
 
-    // 本身没有正文的容器（例如只包了一张图的 <p>）继续下钻，
-    // 让真正的媒体子孙节点按 atomic 标红，而不是把整段标成 splittable。
+    // Descend into containers with no direct text (e.g. <p><img></p>) so media gets marked atomic
     return 'descend';
   });
 
-  // 绘制分页切割线与 page-break 指示标签（使用高辨识度紫色，避免与 atomic 红色混淆）
+  // Render page-break lines and indicator pills (using high-visibility purple)
   pages.slice(1).forEach((breakY, index) => {
     const lineY = breakY - borderTop;
     const lineContainer = element.ownerDocument.createElement('div');
@@ -406,12 +404,9 @@ const SPLIT_CONTAINER_SELECTOR =
   '[data-print-splittable="true"], .print-splittable, [data-print-break="split"], .print-force-split, [data-pdf-splittable="true"], .pdf-splittable, [data-pdf-break="split"], .pdf-force-split';
 
 /**
- * 标记层必须保持在最顶层（用户明确要求）：
- * 打印根节点不会创建独立层叠上下文，若 z-index 太低，
- * 站点内创建了自己的层叠上下文的吸顶元素/TOC 按钮（z-index 10～100+）
- * 会渲染到标记之上，调试标记就看不见了。
- * pointer-events:none 且节点带 data-print-debug，html2canvas 截图时会剔除，
- * 因此不会影响交互或导出。
+ * Overlay layer must remain on top:
+ * Print root does not create its own stacking context; high z-index ensures visibility.
+ * pointer-events: none and data-print-debug ensure it is omitted during capture.
  */
 const MARKER_LAYER = {
   box: 2147483641,
@@ -419,13 +414,13 @@ const MARKER_LAYER = {
   line: 2147483643,
 } as const;
 
-/** 行内语义标签：即使是 flex/grid 子项被 blockify，也不该被当成一块独立可分割区域 */
+/** Inline semantic tags: even when blockified in flex/grid, should not become an isolated splittable box */
 const INLINE_TAGS = new Set([
   'SPAN', 'B', 'STRONG', 'EM', 'I', 'CODE', 'A', 'SMALL', 'SUP', 'SUB', 'MARK',
   'ABBR', 'CITE', 'Q', 'TIME', 'U', 'S', 'KBD', 'SAMP', 'VAR', 'BR',
 ]);
 
-/** 只认元素自己的文本节点：`<p><img></p>` 这类媒体包装段落本身没有正文，不该算可分割正文流 */
+/** Recognizes direct text nodes: wrappers like `<p><img></p>` without text are not splittable flow */
 function hasOwnText(el: HTMLElement): boolean {
   for (let i = 0; i < el.childNodes.length; i++) {
     const child = el.childNodes[i];
@@ -472,7 +467,7 @@ function createOverlay(opts: {
   badge.textContent = opts.badgeText;
   const isRight = opts.badgePosition === 'right';
 
-  // 骑在元素上边框线外侧角隅（top: -9px），避免压住段落首行右侧或左侧的正文文字
+  // Float on top outer corner (top: -9px) to avoid obscuring first line of text
   const badgeTop = '-9px';
   const badgeSide = isRight ? 'right: 4px;' : 'left: 4px;';
 

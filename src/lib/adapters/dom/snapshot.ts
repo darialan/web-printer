@@ -89,7 +89,7 @@ export function cloneWithResolvedStyles(source: HTMLElement, rules: readonly Pri
         if (!context) throw new Error('canvas context unavailable');
         context.drawImage(canvasSource, 0, 0);
       } catch {
-        throw new Error('画布内容无法读取，请检查跨域图片或浏览器的画布支持');
+        throw new Error('Canvas content cannot be read, please check cross-origin images or browser canvas support');
       }
     } else if (tagName === 'img') {
       const imgCopy = copy as HTMLImageElement;

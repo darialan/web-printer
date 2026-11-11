@@ -1,10 +1,10 @@
 import { prepareLayout } from './print-pipeline';
 
 test('rejects missing or hidden print roots instead of silently succeeding', async () => {
-  await expect(prepareLayout({ element: null })).rejects.toThrow('有效');
+  await expect(prepareLayout({ element: null })).rejects.toThrow('Valid');
   const root = document.createElement('div');
   document.body.appendChild(root);
-  await expect(prepareLayout({ element: root })).rejects.toThrow('宽度为零');
+  await expect(prepareLayout({ element: root })).rejects.toThrow('width is zero');
   root.remove();
 });
 
@@ -35,7 +35,7 @@ test('cancellation is rejected before any snapshot allocation', async () => {
   root.getBoundingClientRect = () => ({ width: 800 } as any);
   const controller = new AbortController();
   controller.abort();
-  await expect(prepareLayout({ element: root, signal: controller.signal })).rejects.toThrow('取消');
+  await expect(prepareLayout({ element: root, signal: controller.signal })).rejects.toThrow('cancelled');
   expect(document.querySelector('[data-print-snapshot]')).toBeNull();
   root.remove();
 });
