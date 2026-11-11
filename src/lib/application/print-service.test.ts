@@ -104,5 +104,5 @@ test('exportPreparedLayout selectively renders only pages within startPage and e
     filename: 'invalid.pdf',
     format: 'pdf',
     startPage: 6,
-  })).rejects.toThrow('超出文档总页数');
+  })).rejects.toThrow('exceeds total page count');
 });

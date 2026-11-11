@@ -92,7 +92,7 @@ export interface PrintPreviewViewOptions {
   document?: Document;
 }
 
-/** 只负责渲染的预览视图：数据由调用方提供。previewPrint 与 playground 共用同一份实现。 */
+/** Render-only preview view: data is provided by the caller. Shared between previewPrint and playground. */
 export interface PrintPreviewView {
   element: HTMLElement;
   showLoading: () => void;
@@ -101,9 +101,9 @@ export interface PrintPreviewView {
   setZoom: (zoom: number | 'fit') => void;
   setFullscreen: (fullscreen: boolean) => void;
   setMinimized: (minimized: boolean) => void;
-  /** 关闭并触发 onClose */
+  /** Close preview and trigger onClose callback. */
   close: () => void;
-  /** 静默销毁，不触发 onClose */
+  /** Silently dispose preview without triggering onClose. */
   dispose: () => void;
 }
 
@@ -115,7 +115,7 @@ interface ActivePreviewInstance {
 const activePreviews = new Map<HTMLElement, ActivePreviewInstance>();
 let instanceCounter = 0;
 
-/** 关闭并移除页面上的纸张预览小窗，会触发各自的 onClose（不传参数时关闭所有活动的预览窗） */
+/** Close and remove paper preview widget(s) on page, triggering their onClose (closes all active previews when container is omitted). */
 export function closePrintPreview(container?: HTMLElement) {
   for (const [key, instance] of Array.from(activePreviews)) {
     if (!container || key === container) instance.close();
@@ -548,7 +548,7 @@ export function createPrintPreviewView(options: PrintPreviewViewOptions = {}): P
       sheetControllers.push(updateSheetLayout);
       updateSheetLayout();
 
-      // 前两页立即渲染，后续页通过 IntersectionObserver 提前 600px 懒挂载预加载
+      // Render first 2 pages immediately; subsequent pages are lazily mounted 600px ahead via IntersectionObserver.
       if (index < 2 || typeof IntersectionObserver === 'undefined') {
         mountPageHtml();
       } else {
@@ -584,7 +584,7 @@ export function createPrintPreviewView(options: PrintPreviewViewOptions = {}): P
       return;
     }
     if (e.key === 'Tab') {
-      // 全屏是模态对话框：焦点只能在小窗内循环
+      // Fullscreen modal dialog: trap focus within widget controls.
       const controls = Array.from(
         widget.querySelectorAll<HTMLElement>('button:not(:disabled), [tabindex="0"]')
       );
@@ -605,7 +605,7 @@ export function createPrintPreviewView(options: PrintPreviewViewOptions = {}): P
   win?.addEventListener('resize', handleResize);
   win?.addEventListener('keydown', handleKeyDown);
 
-  /** 静默销毁：不触发 onClose。 */
+  /** Silently dispose: does not trigger onClose. */
   const dispose = () => {
     if (closed) return;
     closed = true;
@@ -614,12 +614,12 @@ export function createPrintPreviewView(options: PrintPreviewViewOptions = {}): P
     clearPageObservers();
     host.remove();
     if (wasFullscreen) restoreFocus?.focus?.();
-    // 只清理自己的登记：同一容器上可能已经打开了新的预览实例
+    // Clean up own registration only: a new preview instance might already be mounted on the same container.
     if (activePreviews.get(mountTarget)?.host === host) activePreviews.delete(mountTarget);
     options.onDispose?.();
   };
 
-  /** 关闭预览并触发 onClose（关闭按钮与 closePrintPreview() 走同一条路径）。 */
+  /** Close preview and trigger onClose callback (close button and closePrintPreview share this path). */
   const close = () => {
     if (closed) return;
     dispose();
@@ -653,11 +653,12 @@ export function createPrintPreviewView(options: PrintPreviewViewOptions = {}): P
 }
 
 /**
- * 一键生成并展示逐页纸张预览（默认挂载右下角暗色悬浮小窗，支持折叠、全屏、缩放控制与滚动懒加载预渲染）。
- * 纯原生 DOM 实现，自动注入内置样式，无需外部 CSS 或前端框架。
+ * One-click generation and display of page-by-page virtual paper preview (mounted as a bottom-right floating widget by default;
+ * supports minimize, fullscreen, zoom controls, and scroll lazy loading).
+ * Pure native DOM implementation with auto-injected styles; requires no external CSS or UI framework.
  *
- * 预览被关闭、被新的预览取代或被 signal 中止时返回 `null`（属于正常取消，不抛错）；
- * 真正的加载失败会显示在小窗内并向调用方抛出。
+ * Returns `null` if the preview is closed, replaced, or aborted via signal (normal cancellation, does not throw);
+ * real loading failures are presented in the preview widget and re-thrown to caller.
  */
 export async function previewPrint(
   input: PreviewPrintOptions | HTMLElement
@@ -692,7 +693,7 @@ export async function previewPrint(
 
   const isCancelled = () => abortController.signal.aborted;
 
-  /** 加载被关闭或中止时返回 null：这是正常的取消，不向调用方抛错。 */
+  /** Returns null when loading is closed or aborted: treated as normal cancellation without throwing. */
   const loadData = async (): Promise<HtmlPreviewData | null> => {
     view.showLoading();
     try {

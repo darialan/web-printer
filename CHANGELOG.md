@@ -1,5 +1,9 @@
 # 变更日志 (CHANGELOG)
 
+<p align="right">
+  <strong>中文</strong> | <a href="./CHANGELOG.en.md">English</a>
+</p>
+
 本文档记录 `@darialan/web-printer` 的所有版本发布与功能演进。遵循 [Semantic Versioning](https://semver.org/) 规范。
 
 ---

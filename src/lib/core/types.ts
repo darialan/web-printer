@@ -52,9 +52,9 @@ export interface PrintSettings {
   header?: DeclarativeHeaderFooterConfig;
   footer?: DeclarativeHeaderFooterConfig;
   pageNumber?: PageNumberConfig;
-  /** 起始打印页码（1-based，默认是 1，即从第一页开始打印）。 */
+  /** Starting page number to print (1-based, defaults to 1). */
   startPage?: number;
-  /** 结尾打印页码（1-based，默认是最后一页）。 */
+  /** Ending page number to print (1-based, inclusive, defaults to the last page). */
   endPage?: number;
 }
 

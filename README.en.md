@@ -21,7 +21,7 @@ In standardized benchmarks on Apple M1 Pro (16GB RAM), **5-page documents export
   <a href="https://pdf-demo-phi.vercel.app/#/playground"><img src="https://img.shields.io/badge/demo-live-245e48" alt="Live Demo"></a>
 </p>
 
-[Live Demo](https://pdf-demo-phi.vercel.app/#/playground) · [npm](https://www.npmjs.com/package/@darialan/web-printer) · [Full Benchmark](https://github.com/darialan/web-printer/blob/master/docs/benchmark.md) · [Integration Guide](https://github.com/darialan/web-printer/blob/master/docs/npm-package-guide.md)
+[Live Demo](https://pdf-demo-phi.vercel.app/#/playground) · [npm](https://www.npmjs.com/package/@darialan/web-printer) · [Full Benchmark](https://github.com/darialan/web-printer/blob/master/docs/benchmark.md) · [Integration Guide](https://github.com/darialan/web-printer/blob/master/docs/npm-package-guide.md) · [Changelog](./CHANGELOG.en.md)
 
 ![Web Printer Workbench: pagination protection and virtual paper preview](https://raw.githubusercontent.com/darialan/web-printer/master/assets/readme/workbench-table.webp)
 

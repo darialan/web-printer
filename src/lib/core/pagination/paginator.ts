@@ -60,23 +60,23 @@ export function validatePageBreaks(pages: PageSlice[], ranges: Interval[], toler
   }
 }
 
-/** 解析并校验后的目标打印页码区间信息 */
+/** Resolved and validated target page range information (1-based). */
 export interface ResolvedPageRange {
-  /** 1-based 起始打印页码（从 1 开始） */
+  /** 1-based start page number (inclusive, >= 1). */
   startPage: number;
-  /** 1-based 结尾打印页码（包含该页） */
+  /** 1-based end page number (inclusive, clamped to totalCount). */
   endPage: number;
-  /** 实际打印的总页数 */
+  /** Actual number of pages to export. */
   count: number;
-  /** 对应的切片索引起始值（0-based，闭区间起） */
+  /** Corresponding 0-based slice start index (inclusive). */
   startIndex: number;
-  /** 对应的切片索引结束值（0-based，闭区间止） */
+  /** Corresponding 0-based slice end index (inclusive). */
   endIndex: number;
 }
 
 /**
- * 校验并解析目标打印页码范围（1-based）。
- * 默认从第一页打到最后一页（startPage = 1, endPage = totalPages）。
+ * Validates and resolves the target print page range (1-based).
+ * Defaults to the full document (startPage = 1, endPage = totalPages).
  */
 export function resolvePageRange(
   totalCount: number,
@@ -84,26 +84,26 @@ export function resolvePageRange(
   endPage?: number
 ): ResolvedPageRange {
   if (!Number.isInteger(totalCount) || totalCount < 1) {
-    throw new Error('文档总页数无效');
+    throw new Error('Total page count must be a positive integer');
   }
 
   const start = startPage !== undefined && startPage !== null ? Number(startPage) : 1;
   const end = endPage !== undefined && endPage !== null ? Number(endPage) : totalCount;
 
   if (!Number.isInteger(start) || start < 1) {
-    throw new Error(`起始打印页码必须为大于或等于 1 的整数，当前为: ${startPage}`);
+    throw new Error(`startPage must be an integer greater than or equal to 1, received: ${startPage}`);
   }
   if (!Number.isInteger(end) || end < 1) {
-    throw new Error(`结尾打印页码必须为大于或等于 1 的整数，当前为: ${endPage}`);
+    throw new Error(`endPage must be an integer greater than or equal to 1, received: ${endPage}`);
   }
   if (start > totalCount) {
-    throw new Error(`起始打印页码 (${start}) 超出文档总页数 (${totalCount})`);
+    throw new Error(`startPage (${start}) exceeds total page count (${totalCount})`);
   }
   if (start > end) {
-    throw new Error(`起始打印页码 (${start}) 不能大于结尾打印页码 (${end})`);
+    throw new Error(`startPage (${start}) cannot be greater than endPage (${end})`);
   }
 
-  // 结尾页码超出总页数时自动截断至最后一页
+  // Clamp endPage to totalCount when exceeding total pages.
   const clampedEnd = Math.min(end, totalCount);
   const count = clampedEnd - start + 1;
 

@@ -39,9 +39,9 @@ export interface BuildHtmlPreviewOptions extends Omit<LayoutOptions, 'element'> 
   element?: HTMLElement | null;
   contentElement?: HTMLElement | null;
   filename?: string;
-  /** 起始打印页码（1-based，默认是 1）。 */
+  /** Starting page number to preview (1-based, defaults to 1). */
   startPage?: number;
-  /** 结尾打印页码（1-based，包含该页，默认是最后一页）。 */
+  /** Ending page number to preview (1-based, inclusive, defaults to the last page). */
   endPage?: number;
 }
 

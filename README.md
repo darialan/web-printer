@@ -23,7 +23,7 @@ Web Printer 是一款浏览器端 HTML 分页导出工具，适合业务报表�
 </p>
 
 
-[在线体验](https://pdf-demo-phi.vercel.app/#/playground) · [npm](https://www.npmjs.com/package/@darialan/web-printer) · [完整 Benchmark](https://github.com/darialan/web-printer/blob/master/docs/benchmark.md) · [接入指南](https://github.com/darialan/web-printer/blob/master/docs/npm-package-guide.md)
+[在线体验](https://pdf-demo-phi.vercel.app/#/playground) · [npm](https://www.npmjs.com/package/@darialan/web-printer) · [完整 Benchmark](https://github.com/darialan/web-printer/blob/master/docs/benchmark.md) · [接入指南](https://github.com/darialan/web-printer/blob/master/docs/npm-package-guide.md) · [更新日志](./CHANGELOG.md)
 
 ![Web Printer 工作台：分页保护与纸张预览](https://raw.githubusercontent.com/darialan/web-printer/master/assets/readme/workbench-table.webp)
 

@@ -11,9 +11,9 @@ export interface ExportOptions extends LayoutOptions {
   filename: string;
   download?: boolean;
   onProgress?: (completed: number, total: number) => void;
-  /** 起始打印页码（1-based，从 1 开始计数，默认是 1，即从第一页开始打印）。 */
+  /** Starting page number to export (1-based, defaults to 1). */
   startPage?: number;
-  /** 结尾打印页码（1-based，包含该页，默认是最后一页）。 */
+  /** Ending page number to export (1-based, inclusive, defaults to the last page). */
   endPage?: number;
 }
 

@@ -161,10 +161,10 @@ test('resolvePageRange supports only startPage or only endPage', () => {
 });
 
 test('resolvePageRange rejects invalid inputs', () => {
-  expect(() => resolvePageRange(0)).toThrow('文档总页数无效');
-  expect(() => resolvePageRange(10, 0)).toThrow('大于或等于 1');
-  expect(() => resolvePageRange(10, -1)).toThrow('大于或等于 1');
-  expect(() => resolvePageRange(10, 1, 0)).toThrow('大于或等于 1');
-  expect(() => resolvePageRange(10, 11)).toThrow('超出文档总页数');
-  expect(() => resolvePageRange(10, 6, 4)).toThrow('不能大于结尾打印页码');
+  expect(() => resolvePageRange(0)).toThrow('Total page count must be a positive integer');
+  expect(() => resolvePageRange(10, 0)).toThrow('greater than or equal to 1');
+  expect(() => resolvePageRange(10, -1)).toThrow('greater than or equal to 1');
+  expect(() => resolvePageRange(10, 1, 0)).toThrow('greater than or equal to 1');
+  expect(() => resolvePageRange(10, 11)).toThrow('exceeds total page count');
+  expect(() => resolvePageRange(10, 6, 4)).toThrow('cannot be greater than endPage');
 });
