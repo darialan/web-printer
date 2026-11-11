@@ -8,6 +8,15 @@
 
 ---
 
+## [3.2.2] - 2026-11-12
+
+### 修复 (Fixes)
+
+- **修复 NPM 主页英文 README 展示问题**：
+  - 将中文版 `README.zh-CN.md` 归档至 [docs/README.zh-CN.md](./docs/README.zh-CN.md)，避免 npm CLI 在根目录匹配 `{README,README.*}` 时误抓中文版，确保 npmjs.com 稳定展示英文主 README。
+
+---
+
 ## [3.2.1] - 2026-11-12
 
 ### 优化与国际化 (Enhancements & i18n)

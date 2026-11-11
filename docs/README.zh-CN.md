@@ -5,7 +5,7 @@
 <h1 align="center">Web Printer</h1>
 
 <p align="center">
-  <a href="./README.md">English</a> | <strong>中文说明</strong>
+  <a href="../README.md">English</a> | <strong>中文说明</strong>
 </p>
 
 <p align="center"><strong>保留网页样式，按内容分页，更快、更稳地导出 PDF 和图片。</strong></p>
@@ -23,7 +23,7 @@ Web Printer 是一款浏览器端 HTML 分页导出工具，适合业务报表�
 </p>
 
 
-[在线体验](https://pdf-demo-phi.vercel.app/#/playground?lang=zh) · [npm](https://www.npmjs.com/package/@darialan/web-printer) · [完整 Benchmark](https://github.com/darialan/web-printer/blob/master/docs/benchmark.zh-CN.md) · [接入指南](https://github.com/darialan/web-printer/blob/master/docs/npm-package-guide.zh-CN.md) · [更新日志](./CHANGELOG.zh-CN.md)
+[在线体验](https://pdf-demo-phi.vercel.app/#/playground?lang=zh) · [npm](https://www.npmjs.com/package/@darialan/web-printer) · [完整 Benchmark](https://github.com/darialan/web-printer/blob/master/docs/benchmark.zh-CN.md) · [接入指南](https://github.com/darialan/web-printer/blob/master/docs/npm-package-guide.zh-CN.md) · [更新日志](../CHANGELOG.zh-CN.md)
 
 ![Web Printer 工作台：分页保护与纸张预览](https://raw.githubusercontent.com/darialan/web-printer/master/assets/readme/workbench-table.zh-CN.webp)
 

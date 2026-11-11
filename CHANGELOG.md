@@ -9,6 +9,15 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [3.2.2] - 2026-11-12
+
+### Fixes
+
+- **Ensure npm Registry Displays English README**:
+  - Moved `README.zh-CN.md` to [docs/README.zh-CN.md](./docs/README.zh-CN.md) so only root `README.md` matches npm CLI's root README discovery glob (`{README,README.*}`), guaranteeing English README rendering on npmjs.com.
+
+---
+
 ## [3.2.1] - 2026-11-12
 
 ### Enhancements & i18n

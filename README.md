@@ -5,7 +5,7 @@
 <h1 align="center">Web Printer</h1>
 
 <p align="center">
-  <strong>English</strong> | <a href="./README.zh-CN.md">中文说明</a>
+  <strong>English</strong> | <a href="./docs/README.zh-CN.md">中文说明</a>
 </p>
 
 <p align="center"><strong>Preserve web page styling. Paginate naturally by content. Export PDF and images faster and more reliably.</strong></p>

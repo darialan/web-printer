@@ -8,7 +8,7 @@ import './landing-page.css';
 
 const REPO = 'https://github.com/darialan/web-printer';
 const benchmarkDocUrl = (locale: Locale) => `${REPO}/blob/master/docs/benchmark${locale === 'zh' ? '.zh-CN' : ''}.md`;
-const guideDocUrl = (locale: Locale) => `${REPO}/blob/master/${locale === 'zh' ? 'README.zh-CN.md' : 'README.md'}`;
+const guideDocUrl = (locale: Locale) => `${REPO}/blob/master/${locale === 'zh' ? 'docs/README.zh-CN.md' : 'README.md'}`;
 const INSTALL_CMD = 'npm install @darialan/web-printer';
 const technologies = ['JavaScript', 'TypeScript', 'React', 'Vue', 'HTML'] as const;
 const scenes = [
