@@ -9,6 +9,21 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [3.2.1] - 2026-11-12
+
+### Enhancements & i18n
+
+- **English-First Documentation & Package Metadata**:
+  - Set English as the default primary language for `README.md`, `CHANGELOG.md`, `package.json` description, and all `docs/*.md` documentation files, with Chinese translations maintained under `*.zh-CN.md`.
+  - Updated README workbench screenshot, landing page showcase screenshots, and repository social preview graphics to English.
+- **English Default UI & Preview Overlay**:
+  - Set `en` as the default locale for the floating paper preview overlay (`createPrintPreviewView` / `previewPrint`), landing site, and HTML template while preserving dynamic Chinese switching.
+  - Fixed `MiniPreviewBoundary` to propagate the active `locale` prop during error fallback rendering.
+- **English Codebase & Error Messages**:
+  - Standardized runtime error messages and source comments across `src/lib` to English.
+
+---
+
 ## [3.2.0] - 2026-11-11
 
 ### Features
