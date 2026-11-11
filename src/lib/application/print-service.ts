@@ -1,7 +1,7 @@
 import { createPageCapture } from '../adapters/canvas/page-capture';
 import { measureDocument } from '../adapters/dom/measurement';
 import { createOutputWriter, OutputFormat, OutputWriter, validateOutputFormat } from '../output';
-import { validatePageBreaks } from '../core/pagination/paginator';
+import { resolvePageRange, validatePageBreaks } from '../core/pagination/paginator';
 import { buildSplittableSelector, buildPrintRules, getSplittableSelector, getPrintRules } from '../core/rules/print-rules';
 import { Interval, MeasurementStats, PageSlice } from '../core/types';
 import { checkCancelled } from './cancellation';
@@ -11,6 +11,10 @@ export interface ExportOptions extends LayoutOptions {
   filename: string;
   download?: boolean;
   onProgress?: (completed: number, total: number) => void;
+  /** 起始打印页码（1-based，从 1 开始计数，默认是 1，即从第一页开始打印）。 */
+  startPage?: number;
+  /** 结尾打印页码（1-based，包含该页，默认是最后一页）。 */
+  endPage?: number;
 }
 
 export interface DocumentExportOptions extends ExportOptions {
@@ -37,12 +41,12 @@ export interface PrintInspectionResult {
 }
 
 /** Share snapshot, pagination and page capture across all output formats. */
-export async function outputDocument({ format = 'pdf', filename, download = true, onProgress, ...options }: DocumentExportOptions) {
+export async function outputDocument({ format = 'pdf', filename, download = true, onProgress, startPage, endPage, ...options }: DocumentExportOptions) {
   validateOutputFormat(format);
   const started = performance.now();
   const layout = await prepareLayout(options);
   try {
-    const result = await exportPreparedLayout(layout, { format, filename, download, onProgress, settings: options.settings, signal: options.signal }, performance.now() - started);
+    const result = await exportPreparedLayout(layout, { format, filename, download, onProgress, startPage, endPage, settings: options.settings, signal: options.signal }, performance.now() - started);
     return { ...result, totalMs: performance.now() - started };
   } finally { layout.cleanup(); }
 }
@@ -53,6 +57,12 @@ export async function exportPreparedLayout(layout: PreparedLayout, options: Omit
   validateOutputFormat(format);
   const started = performance.now();
   const { root, headerHeight, footerHeight, ratio, pages } = layout;
+
+  const rawStart = options.startPage ?? options.settings?.startPage;
+  const rawEnd = options.endPage ?? options.settings?.endPage;
+  const range = resolvePageRange(pages.length, rawStart, rawEnd);
+  const selectedPages = pages.slice(range.startIndex, range.endIndex + 1);
+
   let renderer: ReturnType<typeof createPageCapture> | undefined;
   let writer: OutputWriter | undefined;
   try {
@@ -66,23 +76,23 @@ export async function exportPreparedLayout(layout: PreparedLayout, options: Omit
       settings: options.settings,
       headerCanvas,
       footerCanvas,
-      totalPages: pages.length,
+      totalPages: range.count,
     });
-    onProgress?.(0, pages.length);
-    for (let i = 0; i < pages.length; i++) {
+    onProgress?.(0, range.count);
+    for (let i = 0; i < selectedPages.length; i++) {
       checkCancelled(options.signal);
-      const page = pages[i];
+      const page = selectedPages[i];
       const canvas = await capture(root, page.start, page.end - page.start);
       try { await writer.addPageSlice(i, canvas, (page.end - page.start) * ratio); }
       finally { release(canvas); }
-      onProgress?.(i + 1, pages.length);
+      onProgress?.(i + 1, range.count);
       await new Promise(resolve => setTimeout(resolve, 0));
     }
     checkCancelled(options.signal);
     const blob = await writer.finalize(filename, download);
     return {
       blob,
-      pages: pages.length,
+      pages: range.count,
       layoutMs,
       totalMs: performance.now() - started,
       bytes: blob.size,

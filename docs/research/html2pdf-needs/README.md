@@ -514,7 +514,7 @@ html2canvas 1.4.1 + jsPDF 4.x 光栅化后端**，因此**光栅化层的保真�
 | N25 滚动容器 | 内部滚动区保留裁剪尺寸与 `scrollTop/scrollLeft` | `docs/migration-to-v3.md` | 中（需业务复测） |
 | — 分页可诊断 | 分页线 / 保护区间 / 测量信息 | `src/lib/overlay/page-break-overlay.ts` | 强（库无此 API） |
 
-**已实测的对照数据**（`docs/benchmark.md`，本机单次完整运行 3 次重复）：
+**已实测的对照数据**（`docs/benchmark.md`，Apple M1 Pro / 16GB 内存，3 次独立重复取中位数）：
 
 | 样本 | html2pdf.js | Web Printer current |
 | --- | --- | --- |
@@ -578,7 +578,7 @@ html2canvas 1.4.1 + jsPDF 4.x 光栅化后端**，因此**光栅化层的保真�
 | README "Known issues" 的时效性 | Known issue #2 说克隆"is buggy"并指向 `bugfix/clone-nodes-BUILD` 分支，但该修复已由 PR #792 在 v0.11.3 落地；README 未同步 | 逐条比对 README Known issues 与当前 `main` 分支，判断哪些已过时（过时本身是文档维护状态的证据） |
 | `feature/jspdf-canvas` 分支的完成度 | 2019-02 后停更，未评估其可用性 | `git diff main...feature/jspdf-canvas` 看改动范围；若可用，它是"维护者认可的正确解法"的参考实现 |
 | 混合纸张 / 纵横向混排是否是真实需求 | 仅 4 条独立作者，维护者称"jsPDF 可以，html2pdf 不行" | 判断是"真需求"还是"个例"；Web Printer 3.0 支持横竖向但**不支持同文档内混排**，需确认是否要补 |
-| 3.0 的 long-50 耗时是否可接受 | 35 s 为本机单次数据 | 需在目标业务文档（真实报表/发票）上复测，并与服务端方案对比体验 |
+| 3.0 的 long-50 耗时是否可接受 | 35 s 为 Apple M1 Pro 实测数据 | 需在目标业务文档（真实报表/发票）上复测，并与服务端方案对比体验 |
 
 ---
 

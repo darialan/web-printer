@@ -59,3 +59,59 @@ export function validatePageBreaks(pages: PageSlice[], ranges: Interval[], toler
     throw new Error(`Pagination preview deviates from original layout: ${intersections.length} breakpoints intersect protected content, first at ${intersections[0].start.toFixed(1)}px`);
   }
 }
+
+/** 解析并校验后的目标打印页码区间信息 */
+export interface ResolvedPageRange {
+  /** 1-based 起始打印页码（从 1 开始） */
+  startPage: number;
+  /** 1-based 结尾打印页码（包含该页） */
+  endPage: number;
+  /** 实际打印的总页数 */
+  count: number;
+  /** 对应的切片索引起始值（0-based，闭区间起） */
+  startIndex: number;
+  /** 对应的切片索引结束值（0-based，闭区间止） */
+  endIndex: number;
+}
+
+/**
+ * 校验并解析目标打印页码范围（1-based）。
+ * 默认从第一页打到最后一页（startPage = 1, endPage = totalPages）。
+ */
+export function resolvePageRange(
+  totalCount: number,
+  startPage?: number,
+  endPage?: number
+): ResolvedPageRange {
+  if (!Number.isInteger(totalCount) || totalCount < 1) {
+    throw new Error('文档总页数无效');
+  }
+
+  const start = startPage !== undefined && startPage !== null ? Number(startPage) : 1;
+  const end = endPage !== undefined && endPage !== null ? Number(endPage) : totalCount;
+
+  if (!Number.isInteger(start) || start < 1) {
+    throw new Error(`起始打印页码必须为大于或等于 1 的整数，当前为: ${startPage}`);
+  }
+  if (!Number.isInteger(end) || end < 1) {
+    throw new Error(`结尾打印页码必须为大于或等于 1 的整数，当前为: ${endPage}`);
+  }
+  if (start > totalCount) {
+    throw new Error(`起始打印页码 (${start}) 超出文档总页数 (${totalCount})`);
+  }
+  if (start > end) {
+    throw new Error(`起始打印页码 (${start}) 不能大于结尾打印页码 (${end})`);
+  }
+
+  // 结尾页码超出总页数时自动截断至最后一页
+  const clampedEnd = Math.min(end, totalCount);
+  const count = clampedEnd - start + 1;
+
+  return {
+    startPage: start,
+    endPage: clampedEnd,
+    count,
+    startIndex: start - 1,
+    endIndex: clampedEnd - 1,
+  };
+}

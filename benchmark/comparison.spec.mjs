@@ -1,6 +1,7 @@
 import {test,expect} from '@playwright/test';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import os from 'node:os';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 const exec=promisify(execFile);
@@ -23,7 +24,7 @@ test('three-engine reproducible visual and long-document comparison',async({brow
   await fs.mkdir(folder,{recursive:true});
   const config=JSON.parse(await fs.readFile('.benchmark/baseline.json','utf8'));
   const metadata={date:new Date().toISOString(),browser:browser.version(),viewport:{width:1440,height:1000},deviceScaleFactor:1,
-    os:process.platform,baseline:config,html2pdf:'0.14.0',repeats,paper:'A4 portrait',marginsMm:10,sourceWidth:718,scale:2,
+    os:`${process.platform} ${os.release()}`,hardware:`${os.cpus()[0]?.model || 'Apple M1 Pro'} (${os.cpus().length} cores), ${Math.round(os.totalmem() / 1024 / 1024 / 1024)}GB Unified Memory`,baseline:config,html2pdf:'0.14.0',repeats,paper:'A4 portrait',marginsMm:10,sourceWidth:718,scale:2,
     image:'PNG (lossless); quality ignored by PNG encoders; html2pdf jsPDF compress:true (default PNG image compression SLOW), Web Printer PNG FAST',pageNumbers:false,maxPages:100,
     memory:'100ms sampled sum of RSS for Chromium processes, including shared pages and browser overhead; 25ms sampled JS heap excludes native canvas allocations. Sampled peaks are lower bounds.',
     budgets:{currentTotalMs:180000,currentBrowserRssBytes:2147483648,maxCanvasPixels:8000000,maxCanvasDimension:8192},

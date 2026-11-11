@@ -91,6 +91,7 @@
     "setup:hooks": "git config core.hooksPath .githooks",
     "benchmark:prepare": "node scripts/benchmark/prepare-baseline.mjs",
     "benchmark": "node scripts/benchmark/run.mjs",
+    "benchmark:stress": "BENCHMARK_TEST_MATCH=stress.spec.mjs playwright test --config benchmark.config.mjs",
     "benchmark:report": "node scripts/benchmark/report.mjs",
     "benchmark:serve": "vite --host 127.0.0.1 --port 4175 --strictPort"
   },

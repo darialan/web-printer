@@ -77,11 +77,11 @@ npm `latest` 即 0.14.0 —— 与本仓库的 html2canvas 1.4.1 / jspdf 4.x **�
 - **矢量 PDF**：同上。
 - **表单字段 / PDF/A / 电子签名 / 书签 / 目录**：无对应输出层。
 - **服务端 / Node 渲染**：仅浏览器端（`README.md` "纯浏览器执行"）。
-- **超长文档（数百页）的渲染耗时**：本机 50 页约 35 s（`docs/benchmark.md`），耗时随页数线性增长。
+- **超长文档（数百页）的渲染耗时**：Apple M1 Pro 环境 50 页约 35 s（`docs/benchmark.md`），耗时随页数线性增长。
 
 ## 5. 本仓库已有的 html2pdf.js 对照口径（可直接引用，无需重测）
 
-来源：`docs/benchmark.md`（本机单次完整运行，3 次重复；Chromium 141，1440×1000，DPR 1）。
+来源：`docs/benchmark.md`（标准环境 Apple M1 Pro / 16GB，3 次重复取中位数；Chromium 141，1440×1000，DPR 1）。
 
 | 样本 | html2pdf.js | Web Printer current |
 | --- | --- | --- |

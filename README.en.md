@@ -13,7 +13,7 @@
 
 Web Printer is a browser-side HTML pagination and export engine tailored for business reports, long tables, contracts, and articles. It addresses common pain points in [html2pdf.js](https://github.com/eKoopmans/html2pdf.js) on complex pages, such as **clipped text lines, broken table rows across pages, and blank whiteouts on long documents**.
 
-In our benchmark tests, **5-page documents export ~2.0x faster, and complex tables export ~2.5x faster**; 20-page and 50-page long document stress tests pass page-by-page visual validation without memory crashing or blank pages. See [Benchmark Comparison](#benchmark-comparison-with-html2pdfjs).
+In standardized benchmarks on Apple M1 Pro (16GB RAM), **5-page documents export ~2.0x faster, 10-page documents export ~1.8x faster, and complex tables export ~2.5x faster**; 15-page, 20-page, and 50-page long document tests consistently pass page-by-page visual validation without memory crashes or blank pages. See [Benchmark Comparison](#benchmark-comparison-with-html2pdfjs).
 
 <p align="center">
   <a href="https://www.npmjs.com/package/@darialan/web-printer"><img src="https://img.shields.io/npm/v/@darialan/web-printer?color=245e48" alt="npm version"></a>
@@ -40,20 +40,33 @@ The architectural difference of Web Printer: **calculate safe pagination break p
 
 ## Benchmark: Comparison with html2pdf.js
 
-The following data was gathered in a local test suite: **html2pdf.js 0.14.0** vs. **Web Printer 3.0**. Each scenario was executed 3 times, taking the median duration.
+The following data was gathered in a standardized hardware environment (Apple M1 Pro 8-core / 16GB Unified Memory / macOS): **html2pdf.js 0.14.0** vs. **Web Printer 3.0**. Each scenario was executed 3 times independently, taking the median duration.
 
 | Test Scenario | html2pdf.js | Web Printer | Speedup / Result |
 | --- | ---: | ---: | --- |
 | Long Text (2 pages) | 1,761 ms | **759 ms** | **~2.3x faster** |
 | Complex Table (3 pages) | 3,117 ms | **1,237 ms** | **~2.5x faster** |
 | Standard Document (5 pages) | 4,382 ms | **2,167 ms** | **~2.0x faster** |
+| Medium Document (10 pages) | 7,798 ms | **4,265 ms** | **~1.8x faster** |
 | Flex / Grid Layout | Validation Failed | **630 ms, Passed** | Visual Verification Passed |
+| Long Document (15 pages) | Duplicate text markers, Validation Failed | **6.96 s, Passed** | Content Integrity Passed |
 | Long Document (20 pages) | Duplicate text markers, Validation Failed | **9.96 s, Passed** | Content Integrity Passed |
 | Extra Long Document (50 pages) | Output all blank, Validation Failed | **34.98 s, Passed** | Content Integrity Passed |
 
-<small>Test environment: macOS / Chromium 141 / A4 Portrait / DPR 1. Tested using PDF.js verifying actual exported pages, checking for blank pages and content markers.</small>
+<small>Test Hardware & Environment: Apple M1 Pro (8-core CPU: 6 Performance + 2 Efficiency) · 16 GB Unified Memory · macOS 26.2 · Chromium 141 (Playwright) · Node.js v25 · A4 Portrait (scale 2) · DPR 1.0 · Viewport 1440×1000. Every exported PDF is strictly verified with PDF.js for blank pages and sequential content marker integrity. Data represents these test scenarios and environment.</small>
 
-[View Full Benchmark Report (8 Scenarios & Reproduction Steps)](https://github.com/darialan/web-printer/blob/master/docs/benchmark.md)
+### Extreme Scale & Reliability Stress Testing
+
+To verify production readiness under heavy load and extreme boundaries, we ran automated stress tests, zero-leak soak tests, and physical capacity ceiling probes (`npm run benchmark:stress`):
+
+| Test Item | Scenario Setup | Measured Performance | Verification & Conclusion |
+| :--- | :--- | :--- | :--- |
+| **100-Page Extreme Scale Export** | 100-page continuous mixed-media doc | 68.6 s · 32.0 MiB PDF · Peak RSS 818.5 MiB | 100/100 pages verified via PDF.js; 1,000 sequential markers intact |
+| **20-Round Continuous Soak Test** | 20 consecutive export runs with zero delay | 20/20 (100% success) · Net RSS drift +10.9 MiB (< 3%) | Page canvases & offscreen DOM destroyed immediately; no memory leak |
+| **Mid-flight Abort & Fast Re-entry** | Aborted via AbortController mid-flight and immediately re-triggered | Abort latency < 10 ms · 0 DOM residual · Subsequent run 100% clean | Graceful cancellation and high-frequency re-entrancy without state pollution |
+| **Single-Tab Physical Capacity Probe** | Scaling from 100 → 200 → 300 pages | 200 pages succeeded (331.6 s / 64.2 MiB PDF / 1.3 GiB RSS); 300 pages hit V8 old space heap limit | Recommended single-job safe capacity ceiling is **150–200 pages**; larger docs should use `startPage` / `endPage` for ranged chunking |
+
+[View Full Benchmark Report (Methodology & Reproduction Steps)](https://github.com/darialan/web-printer/blob/master/docs/benchmark.md)
 
 ## Quick Start
 

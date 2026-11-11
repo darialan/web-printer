@@ -1,6 +1,7 @@
 import { serializePrintSnapshot } from '../adapters/dom/snapshot';
 import { calculateGeometry } from '../core/geometry/page-geometry';
 import { DEFAULT_SETTINGS, PX_PER_MM, resolvePaper } from '../core/geometry/paper';
+import { resolvePageRange } from '../core/pagination/paginator';
 import { PageNumberConfig, PageSlice, PrintSettings } from '../core/types';
 import { LayoutOptions, prepareLayout } from './print-pipeline';
 
@@ -38,6 +39,10 @@ export interface BuildHtmlPreviewOptions extends Omit<LayoutOptions, 'element'> 
   element?: HTMLElement | null;
   contentElement?: HTMLElement | null;
   filename?: string;
+  /** 起始打印页码（1-based，默认是 1）。 */
+  startPage?: number;
+  /** 结尾打印页码（1-based，包含该页，默认是最后一页）。 */
+  endPage?: number;
 }
 
 /**
@@ -139,9 +144,14 @@ export async function buildHtmlPreviewData(
     const paper = resolvePaper(resolvedSettings);
     const factor = resolvedSettings.unit === 'px' ? PX_PER_MM : 1;
     const paperLabel = `${resolvedSettings.paper === 'custom' ? 'Custom' : resolvedSettings.paper.toUpperCase()} · ${Number((paper.widthMm * factor).toFixed(1))} × ${Number((paper.heightMm * factor).toFixed(1))} ${resolvedSettings.unit || 'mm'}`;
+    const totalCount = layout.pages.length;
+    const rawStart = options.startPage ?? resolvedSettings.startPage;
+    const rawEnd = options.endPage ?? resolvedSettings.endPage;
+    const range = resolvePageRange(totalCount, rawStart, rawEnd);
+    const selectedPages = layout.pages.slice(range.startIndex, range.endIndex + 1);
     return {
       paperLabel,
-      pages: layout.pages,
+      pages: selectedPages,
       geometry,
       sourceHtml: serializePrintSnapshot(layout.root),
       headerHtml: layout.header ? serializePrintSnapshot(layout.header) : undefined,

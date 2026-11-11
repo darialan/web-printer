@@ -12,7 +12,8 @@ export const scenarios = [
   { id: 'audit-truncate', name: '审计报告文字截断 (#692)', focus: '跨页边界文本行截断保护 (Issue #692)', visual: true },
   { id: 'credit-report', name: '信用报告卡片空白 (#512)', focus: '多级容器平滑拆分与避免大面积空白 (Issue #512)', visual: true },
   { id: 'heavy-dom', name: '复杂后台局部导出性能 (#853)', focus: '无关外部 DOM 节点的隔离克隆与耗时 (Issue #853)', visual: false },
-  ...[5, 20, 50].map(pages => ({ id: `long-${pages}`, name: `${pages} 页长文档`, focus: '逐页耗时、内存、资源释放', targetPages: pages, visual: false })),
+  ...[5, 10, 15, 20, 50].map(pages => ({ id: `long-${pages}`, name: `${pages} 页长文档`, focus: '逐页耗时、内存、资源释放', targetPages: pages, visual: false })),
+  { id: 'stress-100', name: '100 页极限长文档压测', focus: '100 页微渲染与 1000 行标记极端负载', targetPages: 100, visual: false },
 ];
 const line = 'Content-aware pagination keeps each rendered line intact. 原始宽度和文字换行应保持不变。';
 const paragraph = (i: number) => `<p data-check="p-${i}">${i + 1}. ${line} <b>Bold emphasis</b>, <span style="font-family:Georgia;font-size:19px">mixed serif type</span>. ${line}</p>`;

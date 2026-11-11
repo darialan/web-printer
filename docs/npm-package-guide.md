@@ -357,10 +357,12 @@ await outputPDF({
 | `element` | 打印区域；同源 `<iframe>` 可直接传入 |
 | `format` | `'pdf'`（默认）或 `'png'` |
 | `download` | 默认 `true`；`false` 时只返回 Blob |
-| `settings` | 纸张、方向、边距、页眉页脚、页码；默认 A4 纵向、四边 10mm |
+| `startPage` | 起始打印页码（1-based，默认 `1`，即从第 1 页开始导出） |
+| `endPage` | 结尾打印页码（1-based，包含该页，默认到最后一页；超出总页数自动对齐至末页） |
+| `settings` | 纸张、方向、边距、页眉页脚、页码；默认 A4 纵向、四边 10mm（亦可在此配置 `startPage` / `endPage`） |
 | `header` / `footer` | 每页重复渲染的独立 DOM 元素 |
 | `onProgress` | `(completed, total) => void`，每页完成后回调 |
-| `maxPages` | 默认 100，超出直接报错 |
+| `maxPages` | 默认 100，超出直接报错（可传更大数值调高上限） |
 | `rules` / `ruleConfig` | 覆盖或追加分页规则 |
 | `signal` | `AbortSignal`，页面之间检查取消 |
 
@@ -699,7 +701,7 @@ console.table({
 
 打印根节点决定导出范围。导出保留原宽度、布局、内部滚动位置、当前表单值和可读取 Canvas 的绘制；不自动展开滚动组件、加载虚拟列表或隐藏工具栏。普通文档滚动不限制正文长度。图片跨域读取、Shadow DOM、复杂变换和依赖外部祖先的伪元素需要单独验证。
 
-PDF 正文是光栅图像，没有可选中文字层。截图能力受 html2canvas 1.4.1 限制，例如 `oklch()` / `color-mix()` 会报错。单页截图限制 8M 像素和 8192px 单边，初始 scale 2，超预算时缩放；整篇文字和高度各有 200,000 上限，默认最多 100 页。截图 Canvas 会逐页释放，但 PDF、PNG 字节和 DOM 快照仍占用内存，总内存不恒定。
+PDF 正文是光栅图像，没有可选中文字层。截图能力受 html2canvas 1.4.1 限制，例如 `oklch()` / `color-mix()` 会报错。单页截图限制 8M 像素和 8192px 单边，初始 scale 2，超预算时缩放；支持设置 `startPage` 与 `endPage` 精确导出指定页码区间；默认最多 100 页（可通过 `maxPages` 调大）。截图 Canvas 会逐页释放，但 PDF、PNG 字节和 DOM 快照仍占用内存，总内存不恒定。
 
 `outputDocument()` 返回的 `captures` 记录每次截图的 `y`、`height`、像素数、克隆与资源等待耗时、解析与渲染耗时。阶段分界是 html2canvas 的 `onclone` 回调，不是浏览器内部 profiler。Benchmark 同时保存原页面、离屏快照、导出 PDF 回拼图和差异图；几何一致、截图差异和性能分别报告。
 

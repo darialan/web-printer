@@ -1,4 +1,4 @@
-import { paginate, validatePageBreaks } from './paginator';
+import { paginate, validatePageBreaks, resolvePageRange } from './paginator';
 
 test('long blank blocks cover all content, including the tail', () => {
   expect(paginate(2500, 1000, [])).toEqual([
@@ -97,4 +97,74 @@ test('a padding-only final slice takes the last whole line instead of becoming b
   expect(() => validatePageBreaks(pages,ranges,0)).not.toThrow();
   // An indivisible block at the origin offers no legal earlier break.
   expect(paginate(1056,1046,[{top:0,bottom:1040}])).toEqual([{start:0,end:1046},{start:1046,end:1056}]);
+});
+
+test('resolvePageRange resolves default range from first page to last page', () => {
+  const range = resolvePageRange(10);
+  expect(range).toEqual({
+    startPage: 1,
+    endPage: 10,
+    count: 10,
+    startIndex: 0,
+    endIndex: 9,
+  });
+});
+
+test('resolvePageRange resolves custom startPage and endPage', () => {
+  const range = resolvePageRange(10, 3, 7);
+  expect(range).toEqual({
+    startPage: 3,
+    endPage: 7,
+    count: 5,
+    startIndex: 2,
+    endIndex: 6,
+  });
+});
+
+test('resolvePageRange supports single page selection', () => {
+  const range = resolvePageRange(10, 5, 5);
+  expect(range).toEqual({
+    startPage: 5,
+    endPage: 5,
+    count: 1,
+    startIndex: 4,
+    endIndex: 4,
+  });
+});
+
+test('resolvePageRange clamps endPage when exceeding totalCount', () => {
+  const range = resolvePageRange(10, 8, 20);
+  expect(range).toEqual({
+    startPage: 8,
+    endPage: 10,
+    count: 3,
+    startIndex: 7,
+    endIndex: 9,
+  });
+});
+
+test('resolvePageRange supports only startPage or only endPage', () => {
+  expect(resolvePageRange(10, 4)).toEqual({
+    startPage: 4,
+    endPage: 10,
+    count: 7,
+    startIndex: 3,
+    endIndex: 9,
+  });
+  expect(resolvePageRange(10, undefined, 4)).toEqual({
+    startPage: 1,
+    endPage: 4,
+    count: 4,
+    startIndex: 0,
+    endIndex: 3,
+  });
+});
+
+test('resolvePageRange rejects invalid inputs', () => {
+  expect(() => resolvePageRange(0)).toThrow('文档总页数无效');
+  expect(() => resolvePageRange(10, 0)).toThrow('大于或等于 1');
+  expect(() => resolvePageRange(10, -1)).toThrow('大于或等于 1');
+  expect(() => resolvePageRange(10, 1, 0)).toThrow('大于或等于 1');
+  expect(() => resolvePageRange(10, 11)).toThrow('超出文档总页数');
+  expect(() => resolvePageRange(10, 6, 4)).toThrow('不能大于结尾打印页码');
 });

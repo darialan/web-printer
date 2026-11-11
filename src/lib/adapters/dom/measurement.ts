@@ -13,8 +13,8 @@ export function readRootHeight(root: HTMLElement): number {
   const height = clipsAxis(root, 'Y') && !/^(BODY|HTML)$/.test(root.tagName)
     ? root.getBoundingClientRect().height
     : Math.max(root.getBoundingClientRect().height, root.scrollHeight);
-  if (!Number.isFinite(height) || height <= 0 || height > 200000) {
-    throw new Error('Print container is empty or exceeds 200,000px height limit');
+  if (!Number.isFinite(height) || height <= 0) {
+    throw new Error('Print container is empty or invalid height');
   }
   return height;
 }

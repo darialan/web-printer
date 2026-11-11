@@ -14,7 +14,7 @@
 Web Printer 是一款浏览器端 HTML 分页导出工具，适合业务报表、长表格、合同和文章。它针对 [html2pdf.js](https://github.com/eKoopmans/html2pdf.js) 在复杂页面中可能出现的**内容截断、跨页错乱和长文档白屏**问题，改进了分页和渲染流程。
 
 
-在项目的本机 Benchmark 中，**5 页文档导出约快 2.0 倍，复杂表格约快 2.5 倍**；20 页和 50 页长文档测试也通过了逐页内容校验。详见下方[测试结果](#benchmark-与-html2pdfjs-对比)。
+在基于 Apple M1 Pro (16GB RAM) 标准环境的 Benchmark 中，**5 页文档导出约快 2.0 倍，10 页约快 1.8 倍，复杂表格约快 2.5 倍**；15 页、20 页和 50 页长文档测试也稳定通过了逐页内容校验。详见下方[测试结果](#benchmark-与-html2pdfjs-对比)。
 
 <p align="center">
   <a href="https://www.npmjs.com/package/@darialan/web-printer"><img src="https://img.shields.io/npm/v/@darialan/web-printer?color=245e48" alt="npm 版本"></a>
@@ -42,20 +42,33 @@ Web Printer 的区别在于：**先计算内容的安全分页位置，再逐页
 
 ## Benchmark：与 html2pdf.js 对比
 
-以下数据来自项目仓库的一次本机测试：**html2pdf.js 0.14.0** 对比 **Web Printer 3.0 开发代码**。每个场景重复 3 次，耗时取中位数。
+以下数据来自标准硬件环境（Apple M1 Pro 8 核 / 16GB 统一内存 / macOS）：**html2pdf.js 0.14.0** 对比 **Web Printer 3.0 开发代码**。每个场景独立重复 3 次，耗时取中位数。
 
 | 测试场景 | html2pdf.js | Web Printer | 提升 / 结果 |
 | --- | ---: | ---: | --- |
 | 长文本（2 页） | 1,761 ms | **759 ms** | **快约 2.3 倍** |
 | 复杂表格（3 页） | 3,117 ms | **1,237 ms** | **快约 2.5 倍** |
 | 普通长文档（5 页） | 4,382 ms | **2,167 ms** | **快约 2.0 倍** |
+| 中长文档（10 页） | 7,798 ms | **4,265 ms** | **快约 1.8 倍** |
 | Flex / Grid 布局 | 校验失败 | **630 ms，通过** | 页面校验通过 |
+| 长文档（15 页） | 内容标记重复，校验失败 | **6.96 s，通过** | 内容校验通过 |
 | 长文档（20 页） | 内容标记重复，校验失败 | **9.96 s，通过** | 内容校验通过 |
 | 超长文档（50 页） | 导出结果全白，校验失败 | **34.98 s，通过** | 内容校验通过 |
 
-<small>测试环境：macOS / Chromium 141 / A4 纵向 / DPR 1。使用 PDF.js 检查实际导出的 PDF，包括空白页与内容标记。数据仅代表这些样本和测试环境</small>
+<small>测试硬件与运行环境：Apple M1 Pro（8 核 CPU：6 性能核 + 2 能效核）· 16 GB 统一内存 · macOS 26.2 · Chromium 141 (Playwright) · Node.js v25 · A4 纵向 (scale 2) · DPR 1.0 · 视口 1440×1000。每份导出均通过 PDF.js 逐页严格校验空白页与内容标记完整性。数据仅代表该批样本与测试环境。</small>
 
-[查看完整 8 组测试、原始数据口径和复现方法](https://github.com/darialan/web-printer/blob/master/docs/benchmark.md)
+### 极限规模与稳定性压力测试
+
+为验证高负载和复杂生产场景下的稳定性，我们在相同测试环境（Apple M1 Pro / 16GB）下运行了自动化极限压测、内存浸泡与边界探顶测试（`npm run benchmark:stress`）：
+
+| 压测项目 | 场景设定 | 实测表现 | 结论与验证指标 |
+| :--- | :--- | :--- | :--- |
+| **100 页极限规模导出** | 100 页超长图文文档单次导出 | 耗时 68.6 s · 产物 32.0 MiB · 峰值 RSS 818.5 MiB | 100/100 逐页校验通过，1,000 个顺序标记无一错漏 |
+| **20 轮连续高频浸泡** | 连续执行 20 次无间隔导出任务 | 成功率 20/20 (100%) · 内存净波动 +10.9 MiB (< 3%) | 逐页 Canvas 与离屏快照即用即毁，无累积内存泄漏 |
+| **中途取消与快速重入** | 导出进行中触发 AbortController 并立即重发 | 中止响应 < 10 ms · 临时 DOM 零残留 · 新任务完全正常 | 支持平稳取消与高频重入，无状态污染 |
+| **单标签页物理上限实测** | 100 页 → 200 页 → 300 页探顶 | 200 页成功导出（331.6 s / 64.2 MiB PDF / 峰值 1.3 GiB）；300 页触及 V8 堆上限 | 推荐单次导出安全容量上限为 **150 ~ 200 页**；超大文档可利用 `startPage` / `endPage` 分卷导出 |
+
+[查看完整测试报告、原始数据口径和复现方法](https://github.com/darialan/web-printer/blob/master/docs/benchmark.md)
 
 ## 快速开始
 

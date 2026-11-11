@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="580" viewBox="0 0 1200 580" role="img" aria-labelledby="bench-title bench-desc">
-  <title id="bench-title">本机单次基准对照：Web Printer 3.0 vs html2pdf.js</title>
-  <desc id="bench-desc">8 个真实场景下的 PDF 校验与耗时对照。Web Printer 全部通过且线性增长；html2pdf.js 在 Flex/Grid 布局下产生空白页，在 20 页长文档内容重复，在 50 页长文档因 Canvas 超限全部空白。</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="668" viewBox="0 0 1200 668" role="img" aria-labelledby="bench-title bench-desc">
+  <title id="bench-title">基准对照实测：Web Printer 3.0 vs html2pdf.js (Apple M1 Pro / 16GB)</title>
+  <desc id="bench-desc">10 个真实场景下的 PDF 校验与耗时对照。Web Printer 全部通过且线性增长；html2pdf.js 在 Flex/Grid 布局下产生空白页，在 15/20 页长文档内容重复，在 50 页长文档因 Canvas 超限全部空白。</desc>
 
   <defs>
     <linearGradient id="tbl-bg" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -13,14 +13,14 @@
   </defs>
 
   <!-- Background -->
-  <rect width="1200" height="580" rx="16" fill="url(#tbl-bg)"/>
-  <rect width="1200" height="580" rx="16" fill="none" stroke="#e0e6e1" stroke-width="1.5"/>
+  <rect width="1200" height="668" rx="16" fill="url(#tbl-bg)"/>
+  <rect width="1200" height="668" rx="16" fill="none" stroke="#e0e6e1" stroke-width="1.5"/>
 
   <!-- Title & Meta Header -->
   <g transform="translate(60, 42)">
     <rect x="0" y="0" width="84" height="22" rx="4" fill="#e8f3ec"/>
     <text x="42" y="15" text-anchor="middle" fill="#245e48" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" font-weight="700" letter-spacing="1.2">BENCHMARK</text>
-    <text x="96" y="16" fill="#6c7c70" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">Chromium 141 · DPR 1.0 · A4 纵向 · 每组 3 次独立重复取中位数</text>
+    <text x="96" y="16" fill="#6c7c70" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">Apple M1 Pro · 16GB RAM · Chromium 141 · DPR 1.0 · A4 纵向 · 3 次独立重复取中位数</text>
     <text x="1080" y="16" text-anchor="end" fill="#245e48" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" font-weight="600">docs/benchmark.md</text>
 
     <text x="0" y="48" fill="#18221b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif" font-size="24" font-weight="800">客观基准场景实测结果</text>
@@ -29,7 +29,7 @@
 
   <!-- Table Container Card -->
   <g transform="translate(60, 130)">
-    <rect x="0" y="0" width="1080" height="396" rx="10" fill="#ffffff" stroke="#dde5df" filter="url(#table-shadow)"/>
+    <rect x="0" y="0" width="1080" height="484" rx="10" fill="#ffffff" stroke="#dde5df" filter="url(#table-shadow)"/>
 
     <!-- Table Header Row -->
     <path d="M0 10 Q0 0 10 0 L1070 0 Q1080 0 1080 10 L1080 40 L0 40 Z" fill="#f0f5f2"/>
@@ -39,15 +39,16 @@
     <text x="910" y="25" text-anchor="middle" fill="#1c4736" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="700">html2pdf.js 0.14.0</text>
 
     <!-- Dividing Grid Lines -->
-    <line x1="370" y1="0" x2="370" y2="396" stroke="#edf1ee"/>
-    <line x1="490" y1="0" x2="490" y2="396" stroke="#edf1ee"/>
-    <line x1="770" y1="0" x2="770" y2="396" stroke="#edf1ee"/>
+    <line x1="370" y1="0" x2="370" y2="484" stroke="#edf1ee"/>
+    <line x1="490" y1="0" x2="490" y2="484" stroke="#edf1ee"/>
+    <line x1="770" y1="0" x2="770" y2="484" stroke="#edf1ee"/>
 
     <!-- Row Striping Backgrounds -->
     <rect x="0" y="84" width="1080" height="44" fill="#fafcfa"/>
     <rect x="0" y="172" width="1080" height="44" fill="#fafcfa"/>
     <rect x="0" y="260" width="1080" height="44" fill="#fafcfa"/>
-    <rect x="0" y="348" width="1080" height="48" fill="#fafcfa"/>
+    <rect x="0" y="348" width="1080" height="44" fill="#fafcfa"/>
+    <rect x="0" y="436" width="1080" height="48" fill="#fafcfa"/>
 
     <!-- Horizontal Row Dividers -->
     <line x1="0" y1="40" x2="1080" y2="40" stroke="#d5dfd7" stroke-width="1.2"/>
@@ -58,6 +59,8 @@
     <line x1="0" y1="260" x2="1080" y2="260" stroke="#ebf0ec"/>
     <line x1="0" y1="304" x2="1080" y2="304" stroke="#ebf0ec"/>
     <line x1="0" y1="348" x2="1080" y2="348" stroke="#ebf0ec"/>
+    <line x1="0" y1="392" x2="1080" y2="392" stroke="#ebf0ec"/>
+    <line x1="0" y1="436" x2="1080" y2="436" stroke="#ebf0ec"/>
 
     <!-- Row 1: Long Text -->
     <g transform="translate(0, 40)">
@@ -112,8 +115,27 @@
       <text x="910" y="27" text-anchor="middle" fill="#58685c" font-family="ui-monospace, monospace" font-size="13">4,382 ms  (2.0x)</text>
     </g>
 
-    <!-- Row 7: 20-Page (Critical Fail) -->
+    <!-- Row 7: 10-Page -->
     <g transform="translate(0, 304)">
+      <text x="24" y="27" fill="#18221b" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="600">10 页长文档</text>
+      <text x="430" y="27" text-anchor="middle" fill="#58685c" font-family="ui-monospace, monospace" font-size="13">10 页</text>
+      <text x="630" y="27" text-anchor="middle" fill="#245e48" font-family="ui-monospace, monospace" font-size="13" font-weight="700">4,265 ms  &#10003; 通过</text>
+      <text x="910" y="27" text-anchor="middle" fill="#58685c" font-family="ui-monospace, monospace" font-size="13">7,798 ms  (1.8x)</text>
+    </g>
+
+    <!-- Row 8: 15-Page (Critical Fail) -->
+    <g transform="translate(0, 348)">
+      <text x="24" y="27" fill="#18221b" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="600">15 页长文档</text>
+      <text x="130" y="27" fill="#7d8c81" font-family="ui-monospace, monospace" font-size="11">(#393 漂移累积)</text>
+      <text x="430" y="27" text-anchor="middle" fill="#58685c" font-family="ui-monospace, monospace" font-size="13">15 页</text>
+      <text x="630" y="27" text-anchor="middle" fill="#245e48" font-family="ui-monospace, monospace" font-size="13" font-weight="700">6,959 ms  &#10003; 通过</text>
+      <!-- Fail Badge -->
+      <rect x="825" y="10" width="170" height="24" rx="4" fill="#fee8e8"/>
+      <text x="910" y="26" text-anchor="middle" fill="#c43838" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="700">&#10005; 未通过（内容标记重复）</text>
+    </g>
+
+    <!-- Row 9: 20-Page (Critical Fail) -->
+    <g transform="translate(0, 392)">
       <text x="24" y="27" fill="#18221b" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="600">20 页长文档</text>
       <text x="130" y="27" fill="#7d8c81" font-family="ui-monospace, monospace" font-size="11">(#393 漂移累积)</text>
       <text x="430" y="27" text-anchor="middle" fill="#58685c" font-family="ui-monospace, monospace" font-size="13">20 页</text>
@@ -123,8 +145,8 @@
       <text x="910" y="26" text-anchor="middle" fill="#c43838" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="700">&#10005; 未通过（内容标记重复）</text>
     </g>
 
-    <!-- Row 8: 50-Page (Severe Fail) -->
-    <g transform="translate(0, 348)">
+    <!-- Row 10: 50-Page (Severe Fail) -->
+    <g transform="translate(0, 436)">
       <text x="24" y="30" fill="#18221b" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="700">50 页超长文档</text>
       <text x="145" y="30" fill="#7d8c81" font-family="ui-monospace, monospace" font-size="11">(#19 Canvas 超限)</text>
       <text x="430" y="30" text-anchor="middle" fill="#58685c" font-family="ui-monospace, monospace" font-size="13">50 页</text>
@@ -136,7 +158,7 @@
   </g>
 
   <!-- Footnote -->
-  <g transform="translate(60, 542)">
-    <text x="0" y="16" fill="#88998c" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12">注："未通过" 指 PDF.js 逐页渲染像素校验失败（出现空白页或内容重复）。数据来自本机单次复现环境，完整方法与机制见 docs/benchmark.md。</text>
+  <g transform="translate(60, 630)">
+    <text x="0" y="16" fill="#88998c" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12">注："未通过" 指 PDF.js 逐页渲染像素校验失败（出现空白页或内容重复）。测试硬件为 Apple M1 Pro (8核 CPU/16GB 统一内存)，完整方法与机制见 docs/benchmark.md。</text>
   </g>
 </svg>

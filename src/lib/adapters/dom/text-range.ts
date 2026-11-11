@@ -7,10 +7,8 @@ const TEXT_NODE_TYPE = 3;
 export function createTextMeasurer(rootTop: number, collapse: (y: number) => number = y => y) {
   const lineHeights = new WeakMap<Element, number>();
   const range = document.createRange();
-  let characters = 0;
   return (node: Node, clip?: { top: number; bottom: number; left: number; right: number }): Interval[] => {
-    characters += node.textContent?.length || 0;
-    if (characters > 200000) throw new Error('Text exceeds 200,000 character limit, please split export');
+
     const parent = node.parentElement;
     if (parent && !lineHeights.has(parent)) {
       const win = parent.ownerDocument?.defaultView || window;
